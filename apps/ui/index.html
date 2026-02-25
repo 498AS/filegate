@@ -420,6 +420,10 @@
             placeholder="sk_xxxxx"
             required
           />
+          <label style="display: flex; gap: 0.45rem; align-items: center; margin-top: 0.65rem; color: var(--muted); font-size: 0.88rem">
+            <input id="auth-remember" type="checkbox" checked />
+            Remember token on this browser (localStorage)
+          </label>
           <div class="dropzone-actions" style="margin-top: 0.75rem">
             <button class="btn primary" type="submit">Save token</button>
           </div>
@@ -492,18 +496,21 @@
 
     <script>
       const STORAGE_TOKEN_KEY = 'filegate_ui_token';
+      const SESSION_TOKEN_KEY = 'filegate_ui_session_token';
       const API_BASE = '/api';
 
       const state = {
         token: '',
         files: [],
-        progressByName: new Map(),
+        progressByFile: new Map(),
+        progressIdByFile: new Map(),
         uploadSessionId: null,
       };
 
       const authScreen = document.getElementById('auth-screen');
       const authForm = document.getElementById('auth-form');
       const authToken = document.getElementById('auth-token');
+      const authRemember = document.getElementById('auth-remember');
       const app = document.getElementById('app');
       const logoutButton = document.getElementById('logout');
       const refreshSessionsButton = document.getElementById('refresh-sessions');
@@ -553,6 +560,7 @@
       function toAuthMode(message) {
         state.token = '';
         localStorage.removeItem(STORAGE_TOKEN_KEY);
+        sessionStorage.removeItem(SESSION_TOKEN_KEY);
         app.classList.add('hidden');
         authScreen.classList.remove('hidden');
         if (refreshTimer) {
@@ -564,14 +572,23 @@
         }
       }
 
-      function toAppMode(token) {
+      function toAppMode(token, remember = false) {
         state.token = token;
-        localStorage.setItem(STORAGE_TOKEN_KEY, token);
+        sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+        if (remember) {
+          localStorage.setItem(STORAGE_TOKEN_KEY, token);
+        } else {
+          localStorage.removeItem(STORAGE_TOKEN_KEY);
+        }
         authScreen.classList.add('hidden');
         app.classList.remove('hidden');
         refreshSessions();
         if (refreshTimer) clearInterval(refreshTimer);
         refreshTimer = setInterval(refreshSessions, 30_000);
+      }
+
+      function storedToken() {
+        return sessionStorage.getItem(SESSION_TOKEN_KEY) || localStorage.getItem(STORAGE_TOKEN_KEY);
       }
 
       async function api(path, options = {}) {
@@ -605,7 +622,11 @@
 
       function setFiles(files) {
         state.files = Array.from(files);
-        state.progressByName.clear();
+        state.progressByFile.clear();
+        state.progressIdByFile.clear();
+        state.files.forEach((file, index) => {
+          state.progressIdByFile.set(file, `progress-${index}`);
+        });
         renderFiles();
       }
 
@@ -625,19 +646,28 @@
         for (const file of state.files) {
           const item = document.createElement('div');
           item.className = 'file-item';
-          item.innerHTML = `
-            <div class="file-head">
-              <span class="file-name">${file.name}</span>
-              <span>${formatBytes(file.size)}</span>
-            </div>
-            <div class="progress"><span id="progress-${cssSafe(file.name)}"></span></div>
-          `;
+          const head = document.createElement('div');
+          head.className = 'file-head';
+
+          const fileName = document.createElement('span');
+          fileName.className = 'file-name';
+          fileName.textContent = file.name;
+
+          const fileSize = document.createElement('span');
+          fileSize.textContent = formatBytes(file.size);
+
+          const progressWrap = document.createElement('div');
+          progressWrap.className = 'progress';
+          const progressBar = document.createElement('span');
+          progressBar.id = state.progressIdByFile.get(file);
+          progressWrap.appendChild(progressBar);
+
+          head.appendChild(fileName);
+          head.appendChild(fileSize);
+          item.appendChild(head);
+          item.appendChild(progressWrap);
           fileList.appendChild(item);
         }
-      }
-
-      function cssSafe(text) {
-        return text.replace(/[^a-zA-Z0-9_-]/g, '_');
       }
 
       function updateGlobalProgress() {
@@ -648,7 +678,7 @@
 
         const total = state.files.reduce((sum, file) => sum + file.size, 0);
         const loaded = state.files.reduce((sum, file) => {
-          const value = state.progressByName.get(file.name) || 0;
+          const value = state.progressByFile.get(file) || 0;
           return sum + Math.min(value, file.size);
         }, 0);
 
@@ -658,8 +688,9 @@
       }
 
       function setFileProgress(file, loaded) {
-        state.progressByName.set(file.name, loaded);
-        const element = document.getElementById(`progress-${cssSafe(file.name)}`);
+        state.progressByFile.set(file, loaded);
+        const progressId = state.progressIdByFile.get(file);
+        const element = progressId ? document.getElementById(progressId) : null;
         const percent = file.size > 0 ? (Math.min(loaded, file.size) / file.size) * 100 : 0;
         if (element) element.style.width = `${percent.toFixed(1)}%`;
         updateGlobalProgress();
@@ -733,10 +764,7 @@
           const label = sessionLabelInput.value.trim() || undefined;
           const session = await createSession(label);
           state.uploadSessionId = session.id;
-
-          for (const file of state.files) {
-            await uploadFile(session.id, file);
-          }
+          await Promise.all(state.files.map((file) => uploadFile(session.id, file)));
 
           confirmSessionId.textContent = session.id;
           const totalSize = state.files.reduce((sum, file) => sum + file.size, 0);
@@ -776,37 +804,59 @@
           const row = document.createElement('article');
           row.className = 'session-row';
 
-          const created = String(session.created || '').slice(0, 19).replace('T', ' ');
-          const label = session.label || 'Unlabeled';
+          const sessionMain = document.createElement('div');
+          sessionMain.className = 'session-main';
+          const left = document.createElement('div');
 
-          row.innerHTML = `
-            <div class="session-main">
-              <div>
-                <div class="session-id">${session.id}</div>
-                <div>${label}</div>
-              </div>
-              <span class="status ${session.status}">${session.status}</span>
-            </div>
-            <div class="session-meta">
-              <span>${session.files.length} files</span>
-              <span>${created}</span>
-            </div>
-            <div class="session-actions">
-              <button class="btn" type="button" data-copy-id="${session.id}">Copy ID</button>
-            </div>
-          `;
+          const idElement = document.createElement('div');
+          idElement.className = 'session-id';
+          idElement.textContent = String(session.id || '');
 
-          sessionList.appendChild(row);
-        }
+          const labelElement = document.createElement('div');
+          labelElement.textContent = String(session.label || 'Unlabeled');
 
-        sessionList.querySelectorAll('[data-copy-id]').forEach((button) => {
-          button.addEventListener('click', async () => {
-            const id = button.getAttribute('data-copy-id');
+          const status = document.createElement('span');
+          status.className = `status ${String(session.status || '')}`;
+          status.textContent = String(session.status || 'unknown');
+
+          left.appendChild(idElement);
+          left.appendChild(labelElement);
+          sessionMain.appendChild(left);
+          sessionMain.appendChild(status);
+
+          const meta = document.createElement('div');
+          meta.className = 'session-meta';
+
+          const filesCount = document.createElement('span');
+          const files = Array.isArray(session.files) ? session.files.length : 0;
+          filesCount.textContent = `${files} files`;
+
+          const created = document.createElement('span');
+          created.textContent = String(session.created || '').slice(0, 19).replace('T', ' ');
+
+          meta.appendChild(filesCount);
+          meta.appendChild(created);
+
+          const actions = document.createElement('div');
+          actions.className = 'session-actions';
+
+          const copyButton = document.createElement('button');
+          copyButton.className = 'btn';
+          copyButton.type = 'button';
+          copyButton.textContent = 'Copy ID';
+          copyButton.addEventListener('click', async () => {
+            const id = String(session.id || '');
             if (!id) return;
             await navigator.clipboard.writeText(id);
             showToast(`Copied ${id}`);
           });
-        });
+
+          actions.appendChild(copyButton);
+          row.appendChild(sessionMain);
+          row.appendChild(meta);
+          row.appendChild(actions);
+          sessionList.appendChild(row);
+        }
       }
 
       function registerDropzone() {
@@ -836,7 +886,7 @@
           showToast('Token is required.', true);
           return;
         }
-        toAppMode(token);
+        toAppMode(token, Boolean(authRemember.checked));
         authToken.value = '';
       });
 
@@ -866,9 +916,10 @@
 
       registerDropzone();
 
-      const token = localStorage.getItem(STORAGE_TOKEN_KEY);
+      const token = storedToken();
       if (token) {
-        toAppMode(token);
+        const rememberedToken = localStorage.getItem(STORAGE_TOKEN_KEY);
+        toAppMode(token, Boolean(rememberedToken));
       } else {
         toAuthMode();
       }

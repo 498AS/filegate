@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { basename, extname, join } from 'node:path';
-import { mkdir, readdir, readFile, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import AdmZip from 'adm-zip';
 import type { FileEntry, Session, SessionStatus } from './types';
 
@@ -67,7 +67,10 @@ async function generateSessionId(inboxPath: string): Promise<string> {
 }
 
 async function writeSession(inboxPath: string, session: Session): Promise<void> {
-  await writeFile(sessionFilePath(inboxPath, session.id), JSON.stringify(session, null, 2));
+  const destination = sessionFilePath(inboxPath, session.id);
+  const tempPath = `${destination}.tmp`;
+  await writeFile(tempPath, JSON.stringify(session, null, 2));
+  await rename(tempPath, destination);
 }
 
 function parseSession(raw: string): Session {
@@ -202,6 +205,27 @@ function mimeFromName(fileName: string, fallback = 'application/octet-stream'): 
   return MIME_BY_EXT[extname(fileName).toLowerCase()] ?? fallback;
 }
 
+const ZIP_MIME_TYPES = new Set(['application/zip', 'application/x-zip-compressed']);
+
+function hasZipSignature(bytes: Uint8Array): boolean {
+  if (bytes.byteLength < 4) {
+    return false;
+  }
+
+  return (
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07) &&
+    (bytes[3] === 0x04 || bytes[3] === 0x06 || bytes[3] === 0x08)
+  );
+}
+
+function shouldUnzip(file: File, bytes: Uint8Array): boolean {
+  const mimeMatch = ZIP_MIME_TYPES.has(file.type.toLowerCase());
+  const extensionMatch = file.name.toLowerCase().endsWith('.zip');
+  return (mimeMatch || extensionMatch) && hasZipSignature(bytes);
+}
+
 async function storeOneFile(
   inboxPath: string,
   sessionId: string,
@@ -225,16 +249,39 @@ async function storeOneFile(
 async function unzipIntoSession(
   inboxPath: string,
   sessionId: string,
-  zipFile: File,
+  zipBytes: Uint8Array,
+  maxFileSize: number,
 ): Promise<FileEntry[]> {
-  const buffer = Buffer.from(await zipFile.arrayBuffer());
+  const buffer = Buffer.from(zipBytes);
   const zip = new AdmZip(buffer);
   const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
   const uploaded: FileEntry[] = [];
+  let totalDeclaredSize = 0;
+  let totalExtractedSize = 0;
 
   for (const entry of entries) {
-    const fileName = safeName(entry.entryName.split('/').at(-1) ?? 'file.bin');
+    const declaredSize = Math.max(0, Number(entry.header.size ?? 0));
+    if (declaredSize > maxFileSize) {
+      throw new HttpError(413, `Extracted file too large: ${entry.entryName}`);
+    }
+
+    totalDeclaredSize += declaredSize;
+    if (totalDeclaredSize > maxFileSize) {
+      throw new HttpError(413, 'Total extracted size exceeds MAX_FILE_SIZE');
+    }
+
+    const normalizedEntryPath = entry.entryName.replace(/\\/g, '/');
+    const fileName = safeName(basename(normalizedEntryPath));
     const data = entry.getData();
+    if (data.byteLength > maxFileSize) {
+      throw new HttpError(413, `Extracted file too large: ${fileName}`);
+    }
+
+    totalExtractedSize += data.byteLength;
+    if (totalExtractedSize > maxFileSize) {
+      throw new HttpError(413, 'Total extracted size exceeds MAX_FILE_SIZE');
+    }
+
     const item = await storeOneFile(
       inboxPath,
       sessionId,
@@ -273,14 +320,14 @@ export async function addFilesToSession(
   const uploaded: FileEntry[] = [];
 
   for (const file of files) {
-    const isZip = file.name.toLowerCase().endsWith('.zip');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const isZip = shouldUnzip(file, bytes);
     if (unzipEnabled && isZip) {
-      const unzipped = await unzipIntoSession(inboxPath, sessionId, file);
+      const unzipped = await unzipIntoSession(inboxPath, sessionId, bytes, maxFileSize);
       uploaded.push(...unzipped);
       continue;
     }
 
-    const bytes = await file.arrayBuffer();
     const item = await storeOneFile(
       inboxPath,
       sessionId,

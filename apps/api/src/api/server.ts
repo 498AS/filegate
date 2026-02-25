@@ -58,13 +58,7 @@ async function handleRequest(
   config: FilegateConfig,
 ): Promise<Response> {
   const url = new URL(request.url);
-  let { pathname } = url;
-
-  if (pathname === '/api') {
-    pathname = '/';
-  } else if (pathname.startsWith('/api/')) {
-    pathname = pathname.slice(4);
-  }
+  const { pathname } = url;
 
   if (pathname === '/health' && request.method === 'GET') {
     return Response.json({ ok: true });
@@ -123,8 +117,7 @@ async function handleRequest(
   const filesSessionId = sessionIdForFiles(pathname);
   if (filesSessionId && request.method === 'POST') {
     const formData = await request.formData();
-    const entries = Array.from(formData.values()) as unknown[];
-    const files = entries.filter((value): value is File => value instanceof File);
+    const files = formData.getAll('files').filter((value): value is File => value instanceof File);
     const uploaded = await addFilesToSession(
       config.inboxPath,
       filesSessionId,

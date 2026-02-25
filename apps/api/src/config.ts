@@ -7,6 +7,7 @@ export type FilegateConfig = {
   maxFileSize: number;
   unzipEnabled: boolean;
   allowedIps: Set<string>;
+  trustedProxyIps: Set<string>;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): FilegateConfig {
@@ -18,6 +19,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): FilegateConfig
     unzipEnabled: String(env.UNZIP_ENABLED ?? 'false').toLowerCase() === 'true',
     allowedIps: new Set(
       String(env.ALLOWED_IPS ?? '')
+        .split(',')
+        .map((ip) => ip.trim())
+        .filter(Boolean),
+    ),
+    trustedProxyIps: new Set(
+      String(env.TRUSTED_PROXY_IPS ?? '')
         .split(',')
         .map((ip) => ip.trim())
         .filter(Boolean),

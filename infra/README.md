@@ -8,9 +8,10 @@
 ```env
 PORT=3100
 INBOX_PATH=/var/lib/filegate/inbox
-API_SECRET=change-me
+API_SECRET=your-super-secret-token-here
 MAX_FILE_SIZE=209715200
 UNZIP_ENABLED=false
+# TRUSTED_PROXY_IPS=127.0.0.1
 ```
 
 3. Reload and enable:

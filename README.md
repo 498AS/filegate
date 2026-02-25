@@ -55,3 +55,4 @@ Variables de entorno (ver `apps/api/.env.example`):
 - `MAX_FILE_SIZE`
 - `UNZIP_ENABLED`
 - `ALLOWED_IPS`
+- `TRUSTED_PROXY_IPS`

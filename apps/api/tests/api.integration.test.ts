@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { mkdtemp, readdir, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import AdmZip from 'adm-zip';
 import type { Server } from 'bun';
 import { createServer } from '../src/api/server';
 import type { FilegateConfig } from '../src/config';
@@ -29,9 +30,10 @@ describe('filegate api', () => {
       port: 0,
       inboxPath: join(tempDir, 'inbox'),
       apiSecret: TOKEN,
-      maxFileSize: 32,
-      unzipEnabled: false,
+      maxFileSize: 1024,
+      unzipEnabled: true,
       allowedIps: new Set(),
+      trustedProxyIps: new Set(),
     };
 
     server = createServer(config);
@@ -50,16 +52,24 @@ describe('filegate api', () => {
     expect(body).toEqual({ ok: true });
   });
 
-  it('GET /api/health is public (proxy prefix)', async () => {
-    const response = await api('/api/health', {}, false);
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body).toEqual({ ok: true });
-  });
-
   it('requires auth for protected routes', async () => {
     const response = await api('/sessions', {}, false);
     expect(response.status).toBe(401);
+  });
+
+  it('rejects multipart payloads without "files" key', async () => {
+    const create = await api('/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'multipart-key-test' }),
+    });
+    const created = await create.json();
+    const sessionId = created.id as string;
+
+    const form = new FormData();
+    form.append('attachment', new File(['hello'], 'wrong-field.txt', { type: 'text/plain' }));
+    const upload = await api(`/sessions/${sessionId}/files`, { method: 'POST', body: form });
+    expect(upload.status).toBe(400);
   });
 
   it('creates, lists, updates, and deletes sessions', async () => {
@@ -80,7 +90,7 @@ describe('filegate api', () => {
     expect(list.status).toBe(200);
     const sessions = await list.json();
     expect(Array.isArray(sessions)).toBe(true);
-    expect(sessions.length).toBe(1);
+    expect(sessions.some((session: { id: string }) => session.id === created.id)).toBe(true);
 
     const sessionId = created.id as string;
     const get = await api(`/sessions/${sessionId}`);
@@ -143,9 +153,30 @@ describe('filegate api', () => {
     const created = await create.json();
     const sessionId = created.id as string;
 
-    const overLimit = 'x'.repeat(64);
+    const overLimit = 'x'.repeat(2048);
     const form = new FormData();
     form.append('files', new File([overLimit], 'large.bin', { type: 'application/octet-stream' }));
+
+    const upload = await api(`/sessions/${sessionId}/files`, { method: 'POST', body: form });
+    expect(upload.status).toBe(413);
+  });
+
+  it('enforces MAX_FILE_SIZE on extracted ZIP content', async () => {
+    const create = await api('/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'zip-limit-test' }),
+    });
+    const created = await create.json();
+    const sessionId = created.id as string;
+
+    const zip = new AdmZip();
+    zip.addFile('large.txt', Buffer.from('x'.repeat(2048)));
+    const zipBytes = zip.toBuffer();
+    const zipArrayBuffer = Uint8Array.from(zipBytes).buffer;
+
+    const form = new FormData();
+    form.append('files', new File([new Uint8Array(zipArrayBuffer)], 'archive.zip', { type: 'application/zip' }));
 
     const upload = await api(`/sessions/${sessionId}/files`, { method: 'POST', body: form });
     expect(upload.status).toBe(413);

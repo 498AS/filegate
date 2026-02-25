@@ -1,16 +1,28 @@
 import type { Server } from 'bun';
 import type { FilegateConfig } from '../config';
 
-function extractClientIp(request: Request, server: Server<unknown>): string | null {
+function forwardedIp(request: Request): string | null {
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) {
-      return first;
-    }
+  if (!forwarded) {
+    return null;
   }
 
-  return server.requestIP(request)?.address ?? null;
+  const first = forwarded.split(',')[0]?.trim();
+  return first || null;
+}
+
+function extractClientIp(request: Request, server: Server<unknown>, config: FilegateConfig): string | null {
+  const directPeerIp = server.requestIP(request)?.address ?? null;
+  if (!directPeerIp) {
+    return null;
+  }
+
+  const headerIp = forwardedIp(request);
+  if (headerIp && config.trustedProxyIps.has(directPeerIp)) {
+    return headerIp;
+  }
+
+  return directPeerIp;
 }
 
 export function requireAuth(
@@ -19,7 +31,7 @@ export function requireAuth(
   config: FilegateConfig,
 ): Response | null {
   if (config.allowedIps.size > 0) {
-    const clientIp = extractClientIp(request, server);
+    const clientIp = extractClientIp(request, server, config);
     if (!clientIp || !config.allowedIps.has(clientIp)) {
       return Response.json({ error: 'IP not allowed' }, { status: 403 });
     }
