@@ -7,24 +7,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <style>
       :root {
-        --bg: #0f1012;
-        --panel: rgba(23, 24, 28, 0.87);
-        --panel-soft: rgba(255, 255, 255, 0.05);
-        --text: #f7f5ef;
-        --muted: #a6a39a;
-        --accent: #f3b23c;
-        --accent-2: #7fd6ff;
-        --pending: #f3b23c;
-        --picked: #76d18b;
-        --archived: #8d8d8d;
-        --danger: #ff6f7f;
-        --border: rgba(255, 255, 255, 0.15);
-        --shadow: 0 28px 60px rgba(0, 0, 0, 0.45);
+        --bg: #0a0a0b;
+        --surface: #111113;
+        --surface-raised: #191a1c;
+        --text: #ededef;
+        --text-secondary: #8b8b8e;
+        --text-tertiary: #5c5c5f;
+        --accent: #7b61ff;
+        --accent-muted: rgba(123, 97, 255, 0.15);
+        --pending: #e5a63b;
+        --picked: #3fb950;
+        --archived: #6e6e73;
+        --danger: #f85149;
+        --border: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(255, 255, 255, 0.14);
+        --radius: 6px;
       }
 
       * {
@@ -35,59 +37,57 @@
         margin: 0;
         min-height: 100vh;
         color: var(--text);
-        background: radial-gradient(circle at 85% 12%, #223344 0%, transparent 36%),
-          radial-gradient(circle at 12% 84%, #402a17 0%, transparent 33%), var(--bg);
-        font-family: 'Bricolage Grotesque', sans-serif;
+        background: var(--bg);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
       }
 
-      .grain {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        opacity: 0.22;
-        background-image: radial-gradient(rgba(255, 255, 255, 0.15) 0.5px, transparent 0.5px);
-        background-size: 4px 4px;
-        mix-blend-mode: overlay;
-      }
+      .grain { display: none; }
 
       .app-shell {
-        width: min(1180px, 100% - 2rem);
-        margin: 1.5rem auto;
+        width: min(1120px, 100% - 2rem);
+        margin: 0 auto;
         display: grid;
-        gap: 1rem;
+        gap: 1px;
       }
 
       .panel {
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        background: var(--panel);
-        box-shadow: var(--shadow);
-        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
       }
 
       .topbar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 1rem 1.2rem;
+        padding: 0 20px;
+        height: 48px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+        position: sticky;
+        top: 0;
+        z-index: 5;
       }
 
       .brand {
         display: flex;
-        align-items: baseline;
-        gap: 0.6rem;
+        align-items: center;
+        gap: 8px;
       }
 
       .brand h1 {
         margin: 0;
-        font-size: clamp(1.2rem, 2.3vw, 1.9rem);
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
 
       .brand small {
-        font-family: 'IBM Plex Mono', monospace;
-        color: var(--muted);
+        font-size: 12px;
+        color: var(--text-tertiary);
+        font-weight: 400;
       }
 
       .btn,
@@ -99,112 +99,144 @@
 
       .btn {
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 0.55rem 0.9rem;
-        background: rgba(255, 255, 255, 0.08);
-        color: var(--text);
+        border-radius: var(--radius);
+        padding: 5px 12px;
+        background: var(--surface-raised);
+        color: var(--text-secondary);
         cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: color 100ms, background 100ms, border-color 100ms;
       }
 
       .btn:hover {
-        background: rgba(255, 255, 255, 0.14);
+        color: var(--text);
+        border-color: var(--border-hover);
+        background: rgba(255, 255, 255, 0.06);
       }
 
       .btn.primary {
-        border-color: rgba(243, 178, 60, 0.7);
-        background: rgba(243, 178, 60, 0.18);
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .btn.primary:hover {
+        opacity: 0.9;
       }
 
       .btn.danger {
-        border-color: rgba(255, 111, 127, 0.7);
-        background: rgba(255, 111, 127, 0.18);
+        color: var(--danger);
+        border-color: rgba(248, 81, 73, 0.3);
+        background: transparent;
+      }
+
+      .btn.danger:hover {
+        background: rgba(248, 81, 73, 0.1);
       }
 
       .layout {
         display: grid;
-        grid-template-columns: 1.3fr 0.9fr;
-        gap: 1rem;
+        grid-template-columns: 1fr 380px;
+        min-height: calc(100vh - 48px);
       }
 
       .upload-panel {
-        padding: 1rem;
+        padding: 24px;
+        background: var(--bg);
       }
 
       .dropzone {
-        min-height: 56vh;
-        border: 1px dashed rgba(243, 178, 60, 0.6);
-        border-radius: 16px;
-        padding: 1.2rem;
-        position: relative;
+        min-height: 320px;
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        background: linear-gradient(165deg, rgba(0, 0, 0, 0.18), rgba(243, 178, 60, 0.08));
-        transition: transform 160ms ease, border-color 160ms ease, background 220ms ease;
+        background: var(--surface);
+        transition: border-color 120ms;
       }
 
       .dropzone.active {
-        transform: scale(1.01);
-        border-color: rgba(127, 214, 255, 0.8);
-        background: linear-gradient(165deg, rgba(0, 0, 0, 0.12), rgba(127, 214, 255, 0.12));
+        border-color: var(--accent);
       }
 
       .dropzone h2 {
         margin: 0;
-        font-size: clamp(1.6rem, 3vw, 2.4rem);
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
 
       .dropzone p {
-        margin: 0.2rem 0 0;
-        color: var(--muted);
+        margin: 6px 0 0;
+        color: var(--text-tertiary);
+        font-size: 13px;
       }
 
       .dropzone-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.6rem;
-        margin-top: 0.9rem;
+        gap: 8px;
+        margin-top: 16px;
       }
 
       .meta-line {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.85rem;
-        color: var(--muted);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--text-tertiary);
       }
 
       .label-row {
         display: flex;
-        gap: 0.6rem;
-        margin: 0.9rem 0;
+        gap: 8px;
+        margin: 16px 0;
       }
 
       .input {
         width: 100%;
         border: 1px solid var(--border);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.04);
+        border-radius: var(--radius);
+        background: var(--bg);
         color: var(--text);
-        padding: 0.62rem 0.75rem;
+        padding: 7px 10px;
+        font-size: 13px;
+        outline: none;
+        transition: border-color 100ms;
+      }
+
+      .input:focus {
+        border-color: var(--accent);
+      }
+
+      .input::placeholder {
+        color: var(--text-tertiary);
       }
 
       .file-list {
-        margin-top: 0.8rem;
+        margin-top: 12px;
         display: grid;
-        gap: 0.55rem;
+        gap: 4px;
       }
 
       .file-item {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        padding: 0.5rem;
-        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 8px 10px;
+        background: var(--surface);
       }
 
       .file-head {
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
-        font-size: 0.9rem;
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .file-head span:last-child {
+        color: var(--text-tertiary);
+        flex-shrink: 0;
       }
 
       .file-name {
@@ -215,10 +247,10 @@
 
       .progress {
         width: 100%;
-        height: 7px;
-        background: rgba(255, 255, 255, 0.09);
-        border-radius: 999px;
-        margin-top: 0.45rem;
+        height: 3px;
+        background: var(--border);
+        border-radius: 2px;
+        margin-top: 8px;
         overflow: hidden;
       }
 
@@ -226,111 +258,139 @@
         display: block;
         height: 100%;
         width: 0;
-        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        background: var(--accent);
         transition: width 120ms linear;
       }
 
       .summary {
-        margin-top: 0.8rem;
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.86rem;
-        color: var(--muted);
+        margin-top: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--text-tertiary);
       }
 
       .sessions-panel {
-        padding: 1rem;
+        padding: 16px;
+        border-left: 1px solid var(--border);
+        background: var(--surface);
+        overflow-y: auto;
       }
 
       .sessions-panel h3 {
-        margin: 0 0 0.8rem;
-        font-size: 1.1rem;
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
         letter-spacing: 0.06em;
       }
 
       .session-list {
         display: grid;
-        gap: 0.55rem;
+        gap: 2px;
       }
 
       .session-row {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        padding: 0.6rem;
-        background: rgba(255, 255, 255, 0.04);
+        border-radius: var(--radius);
+        padding: 10px;
         display: grid;
-        gap: 0.45rem;
+        gap: 4px;
+        transition: background 80ms;
+      }
+
+      .session-row:hover {
+        background: var(--surface-raised);
       }
 
       .session-main {
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
+        gap: 8px;
         align-items: center;
       }
 
       .session-id {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.83rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--text-secondary);
       }
 
       .status {
-        font-size: 0.78rem;
-        border-radius: 999px;
-        padding: 0.22rem 0.52rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: var(--radius);
+        padding: 2px 6px;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.04em;
       }
 
       .status.pending {
         color: var(--pending);
-        border-color: rgba(243, 178, 60, 0.45);
+        background: rgba(229, 166, 59, 0.12);
       }
 
       .status.picked {
         color: var(--picked);
-        border-color: rgba(118, 209, 139, 0.45);
+        background: rgba(63, 185, 80, 0.12);
       }
 
       .status.archived {
         color: var(--archived);
+        background: rgba(110, 110, 115, 0.15);
+      }
+
+      .session-label {
+        font-size: 13px;
+        font-weight: 500;
       }
 
       .session-meta {
         display: flex;
         justify-content: space-between;
-        color: var(--muted);
-        font-size: 0.84rem;
+        color: var(--text-tertiary);
+        font-size: 12px;
       }
 
       .session-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 0.45rem;
+        gap: 4px;
+        margin-top: 2px;
+      }
+
+      .session-actions .btn {
+        font-size: 12px;
+        padding: 3px 8px;
       }
 
       .confirm-card {
-        margin-top: 0.8rem;
-        padding: 0.8rem;
-        border-radius: 12px;
-        border: 1px solid rgba(118, 209, 139, 0.5);
-        background: rgba(118, 209, 139, 0.1);
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: var(--radius);
+        border: 1px solid rgba(63, 185, 80, 0.3);
+        background: rgba(63, 185, 80, 0.06);
         display: none;
       }
 
       .confirm-card.active {
         display: block;
-        animation: rise 220ms ease;
+        animation: rise 150ms ease;
       }
 
       .confirm-card p {
-        margin: 0.2rem 0;
+        margin: 2px 0;
+        font-size: 13px;
+      }
+
+      .confirm-card strong {
+        color: var(--text-secondary);
+        font-weight: 500;
       }
 
       .confirm-actions {
-        margin-top: 0.65rem;
+        margin-top: 8px;
         display: flex;
-        gap: 0.6rem;
+        gap: 6px;
       }
 
       .auth-screen {
@@ -339,23 +399,28 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(12px);
+        background: var(--bg);
         z-index: 10;
       }
 
       .auth-card {
-        width: min(460px, calc(100% - 2rem));
-        padding: 1.15rem;
+        width: min(400px, calc(100% - 2rem));
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
       }
 
       .auth-card h2 {
-        margin: 0 0 0.3rem;
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 600;
       }
 
       .auth-card p {
-        margin: 0 0 0.75rem;
-        color: var(--muted);
+        margin: 0 0 16px;
+        color: var(--text-tertiary);
+        font-size: 13px;
       }
 
       .hidden {
@@ -364,16 +429,17 @@
 
       .toast {
         position: fixed;
-        right: 1rem;
-        bottom: 1rem;
-        padding: 0.6rem 0.85rem;
-        border-radius: 10px;
+        right: 16px;
+        bottom: 16px;
+        padding: 8px 12px;
+        border-radius: var(--radius);
         border: 1px solid var(--border);
-        background: rgba(12, 13, 16, 0.95);
-        font-size: 0.85rem;
+        background: var(--surface-raised);
+        font-size: 13px;
+        color: var(--text-secondary);
         opacity: 0;
-        transform: translateY(10px);
-        transition: all 180ms ease;
+        transform: translateY(4px);
+        transition: all 120ms ease;
         pointer-events: none;
       }
 
@@ -385,7 +451,7 @@
       @keyframes rise {
         from {
           opacity: 0;
-          transform: translateY(8px);
+          transform: translateY(4px);
         }
         to {
           opacity: 1;
@@ -393,22 +459,25 @@
         }
       }
 
-      @media (max-width: 980px) {
+      @media (max-width: 900px) {
         .layout {
           grid-template-columns: 1fr;
         }
 
+        .sessions-panel {
+          border-left: none;
+          border-top: 1px solid var(--border);
+        }
+
         .dropzone {
-          min-height: 46vh;
+          min-height: 240px;
         }
       }
     </style>
   </head>
   <body>
-    <div class="grain"></div>
-
     <section id="auth-screen" class="auth-screen">
-      <div class="auth-card panel">
+      <div class="auth-card">
         <h2>Access token</h2>
         <p>Enter your Filegate API token to continue.</p>
         <form id="auth-form">
@@ -420,55 +489,55 @@
             placeholder="sk_xxxxx"
             required
           />
-          <label style="display: flex; gap: 0.45rem; align-items: center; margin-top: 0.65rem; color: var(--muted); font-size: 0.88rem">
+          <label style="display: flex; gap: 6px; align-items: center; margin-top: 12px; color: var(--text-tertiary); font-size: 13px">
             <input id="auth-remember" type="checkbox" checked />
-            Remember token on this browser (localStorage)
+            Remember token
           </label>
-          <div class="dropzone-actions" style="margin-top: 0.75rem">
-            <button class="btn primary" type="submit">Save token</button>
+          <div style="margin-top: 16px">
+            <button class="btn primary" type="submit">Continue</button>
           </div>
         </form>
       </div>
     </section>
 
     <main id="app" class="app-shell hidden">
-      <header class="topbar panel">
+      <header class="topbar">
         <div class="brand">
           <h1>filegate</h1>
-          <small>upload station</small>
+          <small>upload</small>
         </div>
-        <div class="dropzone-actions">
+        <div style="display: flex; gap: 6px">
           <button class="btn" id="refresh-sessions" type="button">Refresh</button>
           <button class="btn danger" id="logout" type="button">Logout</button>
         </div>
       </header>
 
       <section class="layout">
-        <article class="upload-panel panel">
+        <article class="upload-panel">
           <div id="dropzone" class="dropzone">
             <div>
               <h2>Drop files to create a session</h2>
-              <p>Any file type is accepted. Upload progress is tracked in real time.</p>
+              <p>Any file type accepted. Progress tracked in real time.</p>
 
               <div class="label-row">
                 <input
                   id="session-label"
                   class="input"
                   type="text"
-                  placeholder="Optional label (e.g. Libraries Q1 2025)"
+                  placeholder="Label (optional)"
                 />
               </div>
 
               <div class="dropzone-actions">
                 <button id="select-files" class="btn" type="button">Choose files</button>
-                <button id="start-upload" class="btn primary" type="button">Create session + upload</button>
+                <button id="start-upload" class="btn primary" type="button">Upload</button>
                 <input id="file-input" type="file" multiple accept="*/*" class="hidden" />
               </div>
             </div>
 
             <div>
               <div class="meta-line" id="selection-meta">0 files selected</div>
-              <div class="progress" style="margin-top: 0.4rem"><span id="global-progress"></span></div>
+              <div class="progress" style="margin-top: 6px"><span id="global-progress"></span></div>
               <div class="summary" id="summary-text">Waiting for files...</div>
             </div>
           </div>
@@ -476,17 +545,17 @@
           <div class="file-list" id="file-list"></div>
 
           <div id="confirm-card" class="confirm-card">
-            <p><strong>Session created:</strong> <span id="confirm-session-id"></span></p>
-            <p><strong>Files uploaded:</strong> <span id="confirm-files"></span></p>
+            <p><strong>Session created</strong> <span id="confirm-session-id"></span></p>
+            <p><strong>Files uploaded</strong> <span id="confirm-files"></span></p>
             <div class="confirm-actions">
               <button id="copy-session" type="button" class="btn">Copy ID</button>
-              <button id="more-files" type="button" class="btn">Add more files</button>
+              <button id="more-files" type="button" class="btn">New upload</button>
             </div>
           </div>
         </article>
 
-        <aside class="sessions-panel panel">
-          <h3>SESSIONS</h3>
+        <aside class="sessions-panel">
+          <h3>Sessions</h3>
           <div id="session-list" class="session-list"></div>
         </aside>
       </section>
@@ -538,7 +607,7 @@
 
       function showToast(text, error = false) {
         toast.textContent = text;
-        toast.style.borderColor = error ? 'rgba(255, 111, 127, 0.65)' : 'var(--border)';
+        toast.style.borderColor = error ? 'rgba(248, 81, 73, 0.4)' : 'var(--border)';
         toast.classList.add('show');
         setTimeout(() => {
           toast.classList.remove('show');
@@ -813,6 +882,7 @@
           idElement.textContent = String(session.id || '');
 
           const labelElement = document.createElement('div');
+          labelElement.className = 'session-label';
           labelElement.textContent = String(session.label || 'Unlabeled');
 
           const status = document.createElement('span');
