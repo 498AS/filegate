@@ -5,6 +5,7 @@ Monorepo basado en Turborepo para el servicio de subida de ficheros.
 ## Workspaces
 
 - `apps/api`: API Bun + TypeScript.
+- `apps/cli`: CLI `filegate` / `fg`.
 - `packages/sdk`: SDK TypeScript generado desde OpenAPI.
 
 ## Requisitos
@@ -28,6 +29,12 @@ En `apps/api` puedes usar:
 
 - `bun run dev`
 - `bun run start`
+
+En `apps/cli` puedes usar:
+
+- `bun run start -- help`
+- `bun run start -- list --json`
+- `bun run start -- pick <session-id> --dest ./data`
 
 Variables de entorno (ver `apps/api/.env.example`):
 
