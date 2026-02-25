@@ -1,0 +1,26 @@
+{
+  "name": "@filegate/cli",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "bin": {
+    "filegate": "./src/index.ts",
+    "fg": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "compile": "bun build --compile src/index.ts --outfile dist/filegate",
+    "lint": "eslint src tests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@filegate/sdk": "workspace:*",
+    "picomatch": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.2"
+  }
+}

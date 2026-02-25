@@ -1,0 +1,12 @@
+{
+  "name": "@filegate/ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 4300",
+    "build": "mkdir -p dist && cp index.html dist/index.html",
+    "lint": "echo 'ui lint: static html'",
+    "typecheck": "echo 'ui typecheck: n/a'",
+    "test": "echo 'ui test: n/a'"
+  }
+}
