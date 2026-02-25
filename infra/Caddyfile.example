@@ -1,0 +1,10 @@
+upload.example.com {
+    handle_path /api/* {
+        reverse_proxy localhost:3100
+    }
+
+    handle {
+        root * /opt/sf-sites/filegate-upload
+        file_server
+    }
+}

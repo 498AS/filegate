@@ -50,6 +50,13 @@ describe('filegate api', () => {
     expect(body).toEqual({ ok: true });
   });
 
+  it('GET /api/health is public (proxy prefix)', async () => {
+    const response = await api('/api/health', {}, false);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ ok: true });
+  });
+
   it('requires auth for protected routes', async () => {
     const response = await api('/sessions', {}, false);
     expect(response.status).toBe(401);

@@ -1,0 +1,16 @@
+[Unit]
+Description=Filegate API (Bun)
+After=network.target
+
+[Service]
+Type=simple
+User=filegate
+Group=filegate
+WorkingDirectory=/opt/filegate
+EnvironmentFile=/etc/filegate/.env
+ExecStart=/usr/bin/bun run --cwd /opt/filegate/apps/api start
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -58,7 +58,13 @@ async function handleRequest(
   config: FilegateConfig,
 ): Promise<Response> {
   const url = new URL(request.url);
-  const { pathname } = url;
+  let { pathname } = url;
+
+  if (pathname === '/api') {
+    pathname = '/';
+  } else if (pathname.startsWith('/api/')) {
+    pathname = pathname.slice(4);
+  }
 
   if (pathname === '/health' && request.method === 'GET') {
     return Response.json({ ok: true });

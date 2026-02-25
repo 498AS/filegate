@@ -6,6 +6,7 @@ Monorepo basado en Turborepo para el servicio de subida de ficheros.
 
 - `apps/api`: API Bun + TypeScript.
 - `apps/cli`: CLI `filegate` / `fg`.
+- `apps/ui`: UI estatic HTML/CSS/JS (sin framework).
 - `packages/sdk`: SDK TypeScript generado desde OpenAPI.
 
 ## Requisitos
@@ -35,6 +36,16 @@ En `apps/cli` puedes usar:
 - `bun run start -- help`
 - `bun run start -- list --json`
 - `bun run start -- pick <session-id> --dest ./data`
+
+En `apps/ui` puedes usar:
+
+- `bun run dev` y abrir `http://localhost:4300`
+
+Deploy/infrastructure:
+
+- `infra/filegate-api.service` (systemd)
+- `infra/Caddyfile.example` (proxy + static)
+- `infra/deploy-static.sh` (subida con `sf`)
 
 Variables de entorno (ver `apps/api/.env.example`):
 
