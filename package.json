@@ -12,6 +12,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "sdk:generate": "bun run --cwd packages/sdk generate",
     "openapi:validate": "turbo run openapi:validate",
     "check": "turbo run lint typecheck test openapi:validate"
   },
