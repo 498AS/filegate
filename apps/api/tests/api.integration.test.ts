@@ -57,6 +57,17 @@ describe('filegate api', () => {
     expect(response.status).toBe(401);
   });
 
+  it('creates session when POST /sessions has no body', async () => {
+    const create = await api('/sessions', { method: 'POST' });
+    expect(create.status).toBe(201);
+
+    const session = await create.json();
+    expect(session.id).toMatch(/^ses_[a-zA-Z0-9]{6}$/);
+    expect(session.label).toBeNull();
+    expect(session.status).toBe('pending');
+    expect(session.files).toEqual([]);
+  });
+
   it('rejects multipart payloads without "files" key', async () => {
     const create = await api('/sessions', {
       method: 'POST',
@@ -144,6 +155,36 @@ describe('filegate api', () => {
     expect(filesOnDisk.filter((name) => name.endsWith('.txt')).length).toBe(2);
   });
 
+  it('keeps session metadata consistent across parallel uploads', async () => {
+    const create = await api('/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'parallel-upload-test' }),
+    });
+    const created = await create.json();
+    const sessionId = created.id as string;
+
+    const mkUpload = (name: string, text: string) => {
+      const form = new FormData();
+      form.append('files', new File([text], name, { type: 'text/plain' }));
+      return api(`/sessions/${sessionId}/files`, { method: 'POST', body: form });
+    };
+
+    const [up1, up2, up3] = await Promise.all([
+      mkUpload('a.txt', 'a'),
+      mkUpload('b.txt', 'b'),
+      mkUpload('c.txt', 'c'),
+    ]);
+    expect(up1.status).toBe(201);
+    expect(up2.status).toBe(201);
+    expect(up3.status).toBe(201);
+
+    const session = await api(`/sessions/${sessionId}`);
+    const payload = await session.json();
+    const names = payload.files.map((file: { name: string }) => file.name).sort();
+    expect(names).toEqual(['a.txt', 'b.txt', 'c.txt']);
+  });
+
   it('enforces MAX_FILE_SIZE', async () => {
     const create = await api('/sessions', {
       method: 'POST',
@@ -180,6 +221,33 @@ describe('filegate api', () => {
 
     const upload = await api(`/sessions/${sessionId}/files`, { method: 'POST', body: form });
     expect(upload.status).toBe(413);
+
+    const session = await api(`/sessions/${sessionId}`);
+    const payload = await session.json();
+    expect(payload.files).toEqual([]);
+
+    const filesOnDisk = await readdir(join(config.inboxPath, sessionId));
+    expect(filesOnDisk).toEqual(['session.json']);
+  });
+
+  it('does not unzip fake .zip files that miss ZIP signature', async () => {
+    const create = await api('/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'fake-zip-test' }),
+    });
+    const created = await create.json();
+    const sessionId = created.id as string;
+
+    const form = new FormData();
+    form.append('files', new File(['not-a-zip'], 'fake.zip', { type: 'application/zip' }));
+    const upload = await api(`/sessions/${sessionId}/files`, { method: 'POST', body: form });
+    expect(upload.status).toBe(201);
+
+    const session = await api(`/sessions/${sessionId}`);
+    const payload = await session.json();
+    expect(payload.files).toHaveLength(1);
+    expect(payload.files[0].name).toBe('fake.zip');
   });
 
   it('deletes uploaded files from a session', async () => {

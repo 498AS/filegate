@@ -21,9 +21,14 @@ export class FilegateApiError extends Error {
   }
 }
 
+function readEnv(name: string): string | undefined {
+  const processObject = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+  return processObject?.env?.[name];
+}
+
 function resolveConfig(options: FilegateClientOptions): { url: string; token: string } {
-  const url = options.url ?? process.env.FILEGATE_API_URL ?? 'http://localhost:3100';
-  const token = options.token ?? process.env.FILEGATE_TOKEN ?? '';
+  const url = options.url ?? readEnv('FILEGATE_API_URL') ?? 'http://localhost:3100';
+  const token = options.token ?? readEnv('FILEGATE_TOKEN') ?? '';
 
   if (!token) {
     throw new Error('Filegate token is required. Set FILEGATE_TOKEN or pass token option.');

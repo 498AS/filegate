@@ -17,6 +17,8 @@ const MIME_BY_EXT: Record<string, string> = {
   '.zip': 'application/zip',
 };
 
+const sessionLocks = new Map<string, Promise<void>>();
+
 export class HttpError extends Error {
   public readonly status: number;
 
@@ -212,12 +214,7 @@ function hasZipSignature(bytes: Uint8Array): boolean {
     return false;
   }
 
-  return (
-    bytes[0] === 0x50 &&
-    bytes[1] === 0x4b &&
-    (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07) &&
-    (bytes[3] === 0x04 || bytes[3] === 0x06 || bytes[3] === 0x08)
-  );
+  return bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 }
 
 function shouldUnzip(file: File, bytes: Uint8Array): boolean {
@@ -255,7 +252,7 @@ async function unzipIntoSession(
   const buffer = Buffer.from(zipBytes);
   const zip = new AdmZip(buffer);
   const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
-  const uploaded: FileEntry[] = [];
+  const prepared: Array<{ fileName: string; mime: string; data: Buffer }> = [];
   let totalDeclaredSize = 0;
   let totalExtractedSize = 0;
 
@@ -267,7 +264,7 @@ async function unzipIntoSession(
 
     totalDeclaredSize += declaredSize;
     if (totalDeclaredSize > maxFileSize) {
-      throw new HttpError(413, 'Total extracted size exceeds MAX_FILE_SIZE');
+      throw new HttpError(413, 'Total declared ZIP size exceeds MAX_FILE_SIZE');
     }
 
     const normalizedEntryPath = entry.entryName.replace(/\\/g, '/');
@@ -282,17 +279,42 @@ async function unzipIntoSession(
       throw new HttpError(413, 'Total extracted size exceeds MAX_FILE_SIZE');
     }
 
-    const item = await storeOneFile(
+    prepared.push({ fileName, mime: mimeFromName(fileName), data });
+  }
+
+  const uploaded: FileEntry[] = [];
+  for (const item of prepared) {
+    const uploadedItem = await storeOneFile(
       inboxPath,
       sessionId,
-      fileName,
-      data,
-      mimeFromName(fileName),
+      item.fileName,
+      item.data,
+      item.mime,
     );
-    uploaded.push(item);
+    uploaded.push(uploadedItem);
   }
 
   return uploaded;
+}
+
+async function withSessionLock<T>(sessionId: string, operation: () => Promise<T>): Promise<T> {
+  const previous = sessionLocks.get(sessionId) ?? Promise.resolve();
+  let releaseCurrent: () => void = () => {};
+  const current = new Promise<void>((resolve) => {
+    releaseCurrent = resolve;
+  });
+  const slot = previous.then(() => current);
+  sessionLocks.set(sessionId, slot);
+
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    releaseCurrent();
+    if (sessionLocks.get(sessionId) === slot) {
+      sessionLocks.delete(sessionId);
+    }
+  }
 }
 
 export async function addFilesToSession(
@@ -302,49 +324,56 @@ export async function addFilesToSession(
   maxFileSize: number,
   unzipEnabled: boolean,
 ): Promise<FileEntry[]> {
-  const session = await getSession(inboxPath, sessionId);
-  if (!session) {
-    throw new HttpError(404, 'Session not found');
-  }
-
-  if (files.length === 0) {
-    throw new HttpError(400, 'No files provided');
-  }
-
-  for (const file of files) {
-    if (file.size > maxFileSize) {
-      throw new HttpError(413, `File too large: ${file.name}`);
-    }
-  }
-
-  const uploaded: FileEntry[] = [];
-
-  for (const file of files) {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const isZip = shouldUnzip(file, bytes);
-    if (unzipEnabled && isZip) {
-      const unzipped = await unzipIntoSession(inboxPath, sessionId, bytes, maxFileSize);
-      uploaded.push(...unzipped);
-      continue;
+  return withSessionLock(sessionId, async () => {
+    const session = await getSession(inboxPath, sessionId);
+    if (!session) {
+      throw new HttpError(404, 'Session not found');
     }
 
-    const item = await storeOneFile(
-      inboxPath,
-      sessionId,
-      file.name,
-      bytes,
-      file.type || mimeFromName(file.name),
-    );
-    uploaded.push(item);
-  }
+    if (files.length === 0) {
+      throw new HttpError(400, 'No files provided');
+    }
 
-  const updated: Session = {
-    ...session,
-    files: [...session.files, ...uploaded],
-  };
+    for (const file of files) {
+      if (file.size > maxFileSize) {
+        throw new HttpError(413, `File too large: ${file.name}`);
+      }
+    }
 
-  await writeSession(inboxPath, updated);
-  return uploaded;
+    const uploaded: FileEntry[] = [];
+
+    for (const file of files) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const isZip = shouldUnzip(file, bytes);
+      if (unzipEnabled && isZip) {
+        const unzipped = await unzipIntoSession(inboxPath, sessionId, bytes, maxFileSize);
+        uploaded.push(...unzipped);
+        continue;
+      }
+
+      const item = await storeOneFile(
+        inboxPath,
+        sessionId,
+        file.name,
+        bytes,
+        file.type || mimeFromName(file.name),
+      );
+      uploaded.push(item);
+    }
+
+    const freshSession = await getSession(inboxPath, sessionId);
+    if (!freshSession) {
+      throw new HttpError(404, 'Session not found');
+    }
+
+    const updated: Session = {
+      ...freshSession,
+      files: [...freshSession.files, ...uploaded],
+    };
+
+    await writeSession(inboxPath, updated);
+    return uploaded;
+  });
 }
 
 export async function deleteSessionFile(

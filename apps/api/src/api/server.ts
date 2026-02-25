@@ -30,6 +30,19 @@ async function readJsonBody(request: Request): Promise<JsonRecord> {
   }
 }
 
+async function readOptionalJsonBody(request: Request): Promise<JsonRecord> {
+  const rawBody = await request.text();
+  if (!rawBody.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawBody) as JsonRecord;
+  } catch {
+    throw new HttpError(400, 'Invalid JSON body');
+  }
+}
+
 function sessionIdFrom(pathname: string): string | null {
   const match = pathname.match(/^\/sessions\/([^/]+)$/);
   return match?.[1] ?? null;
@@ -70,7 +83,7 @@ async function handleRequest(
   }
 
   if (pathname === '/sessions' && request.method === 'POST') {
-    const body = await readJsonBody(request);
+    const body = await readOptionalJsonBody(request);
     const label = typeof body.label === 'string' ? body.label : undefined;
     const session = await createSession(config.inboxPath, label);
     return Response.json(session, { status: 201 });
