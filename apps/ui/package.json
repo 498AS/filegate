@@ -3,10 +3,30 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 4300",
-    "build": "mkdir -p dist && cp index.html dist/index.html",
-    "lint": "echo 'ui lint: static html'",
-    "typecheck": "echo 'ui typecheck: n/a'",
-    "test": "echo 'ui test: n/a'"
+    "dev": "astro dev --port 4300",
+    "build": "astro build",
+    "lint": "echo 'ui lint: TODO'",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/react": "^4.2.0",
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^5.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.474.0",
+    "next-themes": "^0.4.6",
+    "radix-ui": "^1.4.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@filegate/sdk": "workspace:*",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
   }
 }
