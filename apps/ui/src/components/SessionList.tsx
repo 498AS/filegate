@@ -11,6 +11,17 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { StatusBadge } from "./StatusBadge";
 import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
@@ -68,7 +79,6 @@ export function SessionList({ refreshKey }: Props) {
 
   async function handleDelete(id: string) {
     if (!client) return;
-    if (!window.confirm("Segur que vols eliminar aquesta pujada?")) return;
     try {
       await client.sessions.remove(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
@@ -104,7 +114,7 @@ export function SessionList({ refreshKey }: Props) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+      <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
         <Loader2 className="size-5 animate-spin text-primary/40" />
         <p className="text-sm">Carregant…</p>
       </div>
@@ -113,14 +123,16 @@ export function SessionList({ refreshKey }: Props) {
 
   if (sessions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
+      <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-4">
         <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/70">
           <Cloud className="size-7" />
         </div>
         <div className="text-center">
-          <p className="text-sm font-medium text-foreground/60">Encara no hi ha pujades</p>
+          <p className="text-sm font-medium text-foreground/60">
+            Encara no hi ha pujades
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Els arxius que pugis apareixeran aquí
+            Selecciona arxius des de la barra superior
           </p>
         </div>
       </div>
@@ -149,7 +161,7 @@ export function SessionList({ refreshKey }: Props) {
         </div>
       </div>
 
-      {/* Session rows — clean table-like */}
+      {/* Session rows */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden divide-y divide-border/50">
         {sessions.map((session) => {
           const isOpen = expanded.has(session.id);
@@ -157,9 +169,7 @@ export function SessionList({ refreshKey }: Props) {
 
           return (
             <div key={session.id}>
-              {/* Row */}
               <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors">
-                {/* Expand */}
                 <button
                   onClick={() => toggleExpand(session.id)}
                   className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
@@ -171,21 +181,18 @@ export function SessionList({ refreshKey }: Props) {
                   )}
                 </button>
 
-                {/* Folder icon */}
                 <FolderOpen className="size-5 text-amber-400 shrink-0" />
 
-                {/* Name + meta */}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{displayName}</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {session.files.length} arxiu(s) · {formatDate(session.created)}
+                    {session.files.length} arxiu(s) ·{" "}
+                    {formatDate(session.created)}
                   </p>
                 </div>
 
-                {/* Status */}
                 <StatusBadge status={session.status} />
 
-                {/* Actions */}
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Button
                     variant="ghost"
@@ -199,19 +206,41 @@ export function SessionList({ refreshKey }: Props) {
                   >
                     <Copy />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-muted-foreground/40 hover:text-destructive"
-                    onClick={() => handleDelete(session.id)}
-                    title="Eliminar"
-                  >
-                    <Trash2 />
-                  </Button>
+
+                  {/* Delete with AlertDialog */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-muted-foreground/40 hover:text-destructive"
+                        title="Eliminar"
+                      >
+                        <Trash2 />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent size="sm" className="rounded-2xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Eliminar pujada?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          S'eliminaran tots els arxius d'aquesta pujada. Aquesta
+                          acció no es pot desfer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel·lar</AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          onClick={() => handleDelete(session.id)}
+                        >
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
 
-              {/* Expanded files */}
               {isOpen && session.files.length > 0 && (
                 <div className="bg-muted/20 px-4 py-3 pl-14">
                   <div className="space-y-0.5">
@@ -230,7 +259,9 @@ export function SessionList({ refreshKey }: Props) {
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          onClick={() => handleDownload(session.id, file.name)}
+                          onClick={() =>
+                            handleDownload(session.id, file.name)
+                          }
                           title="Descarregar"
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
                         >
