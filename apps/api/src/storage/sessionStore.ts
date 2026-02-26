@@ -348,6 +348,10 @@ export async function addFilesToSession(
       throw new HttpError(400, 'No files provided');
     }
 
+    if (paths && paths.length !== files.length) {
+      throw new HttpError(400, 'paths array must match files array length');
+    }
+
     for (const file of files) {
       if (file.size > maxFileSize) {
         throw new HttpError(413, `File too large: ${file.name}`);
