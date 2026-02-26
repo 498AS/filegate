@@ -18,6 +18,8 @@ import { formatBytes } from "@/lib/format";
 import { toast } from "sonner";
 import type { Session } from "@filegate/sdk";
 
+type FileWithPath = File & { relativePath?: string };
+
 type UploadState =
   | { phase: "idle" }
   | { phase: "uploading"; progress: number }
@@ -29,21 +31,56 @@ interface Props {
 
 const UPLOAD_URL = "https://upload.498as.com";
 
+function tagRelativePath(file: File, path: string): FileWithPath {
+  return Object.assign(file, { relativePath: path });
+}
+
+async function traverseEntry(entry: FileSystemEntry): Promise<FileWithPath[]> {
+  if (entry.isFile) {
+    return new Promise((resolve) => {
+      (entry as FileSystemFileEntry).file((f) => {
+        resolve([tagRelativePath(f, entry.fullPath.replace(/^\//, ""))]);
+      });
+    });
+  }
+  if (entry.isDirectory) {
+    const reader = (entry as FileSystemDirectoryEntry).createReader();
+    const entries = await new Promise<FileSystemEntry[]>((resolve) => {
+      const all: FileSystemEntry[] = [];
+      const readBatch = () => {
+        reader.readEntries((batch) => {
+          if (batch.length === 0) return resolve(all);
+          all.push(...batch);
+          readBatch();
+        });
+      };
+      readBatch();
+    });
+    const nested = await Promise.all(entries.map(traverseEntry));
+    return nested.flat();
+  }
+  return [];
+}
+
 export function UploadZone({ onUploaded }: Props) {
   const client = useClient();
   const { logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<File[]>([]);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<FileWithPath[]>([]);
   const [label, setLabel] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [state, setState] = useState<UploadState>({ phase: "idle" });
   const [copied, setCopied] = useState(false);
 
-  const addFiles = useCallback((incoming: FileList | File[]) => {
-    const arr = Array.from(incoming);
+  const addFiles = useCallback((incoming: FileWithPath[]) => {
     setFiles((prev) => {
-      const existing = new Set(prev.map((f) => `${f.name}:${f.size}`));
-      const deduped = arr.filter((f) => !existing.has(`${f.name}:${f.size}`));
+      const existing = new Set(
+        prev.map((f) => `${f.relativePath ?? f.name}:${f.size}`),
+      );
+      const deduped = incoming.filter(
+        (f) => !existing.has(`${f.relativePath ?? f.name}:${f.size}`),
+      );
       return [...prev, ...deduped];
     });
   }, []);
@@ -164,10 +201,23 @@ export function UploadZone({ onUploaded }: Props) {
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
+        onDrop={async (e) => {
           e.preventDefault();
           setDragOver(false);
-          if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+          const items = e.dataTransfer.items;
+          if (items?.length) {
+            const entries = Array.from(items)
+              .map((item) => item.webkitGetAsEntry?.())
+              .filter((e): e is FileSystemEntry => e != null);
+            if (entries.length > 0) {
+              const nested = await Promise.all(entries.map(traverseEntry));
+              addFiles(nested.flat());
+              return;
+            }
+          }
+          if (e.dataTransfer.files.length) {
+            addFiles(Array.from(e.dataTransfer.files));
+          }
         }}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -177,7 +227,29 @@ export function UploadZone({ onUploaded }: Props) {
           multiple
           className="hidden"
           onChange={(e) => {
-            if (e.target.files?.length) addFiles(e.target.files);
+            if (e.target.files?.length) {
+              addFiles(Array.from(e.target.files).map((f) =>
+                f.webkitRelativePath
+                  ? tagRelativePath(f, f.webkitRelativePath)
+                  : f,
+              ));
+            }
+            e.target.value = "";
+          }}
+        />
+        <input
+          ref={folderInputRef}
+          type="file"
+          className="hidden"
+          {...({ webkitdirectory: "", directory: "" } as any)}
+          onChange={(e) => {
+            if (e.target.files?.length) {
+              addFiles(Array.from(e.target.files).map((f) =>
+                f.webkitRelativePath
+                  ? tagRelativePath(f, f.webkitRelativePath)
+                  : f,
+              ));
+            }
             e.target.value = "";
           }}
         />
@@ -185,26 +257,45 @@ export function UploadZone({ onUploaded }: Props) {
           <CloudUpload className="size-6 text-primary" />
         </div>
         <p className="text-sm text-foreground/70">
-          Arrossega els arxius aquí
+          Arrossega arxius o carpetes aquí
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           o{" "}
           <span className="text-primary font-medium">
-            fes clic per seleccionar-los
+            selecciona arxius
           </span>
+          {" "}o{" "}
+          <button
+            type="button"
+            className="text-primary font-medium hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              folderInputRef.current?.click();
+            }}
+          >
+            selecciona una carpeta
+          </button>
         </p>
       </div>
 
       {/* File list */}
       {files.length > 0 && (
         <div className="space-y-2">
-          {files.map((file, i) => (
+          {files.map((file, i) => {
+            const rel = (file as FileWithPath).relativePath;
+            const dir = rel ? rel.replace(/[/\\][^/\\]*$/, "") : "";
+            return (
             <div
-              key={`${file.name}-${i}`}
+              key={`${rel ?? file.name}-${i}`}
               className="flex items-center gap-3 text-sm bg-white rounded-xl border border-border/60 px-3.5 py-3 group shadow-sm"
             >
               <FileIcon fileName={file.name} className="size-5" />
               <span className="truncate flex-1 text-foreground/80">
+                {dir && (
+                  <span className="text-muted-foreground text-xs">
+                    {dir}/
+                  </span>
+                )}
                 {file.name}
               </span>
               <span className="text-muted-foreground text-xs shrink-0">
@@ -220,7 +311,8 @@ export function UploadZone({ onUploaded }: Props) {
                 <X className="size-4" />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -30,6 +30,9 @@ components:
         uploaded:
           type: string
           format: date-time
+        path:
+          type: string
+          description: Relative directory path, e.g. "reports/2025"
     Session:
       type: object
       required:
@@ -228,6 +231,11 @@ paths:
                   items:
                     type: string
                     format: binary
+                paths:
+                  type: array
+                  items:
+                    type: string
+                  description: Relative directory path for each file (parallel to files array)
       responses:
         '201':
           description: Uploaded files

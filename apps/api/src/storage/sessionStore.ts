@@ -157,6 +157,16 @@ export async function deleteSession(inboxPath: string, sessionId: string): Promi
   }
 }
 
+function safePath(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const normalized = raw
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((seg) => seg !== '..' && seg !== '.' && seg.length > 0)
+    .join('/');
+  return normalized || undefined;
+}
+
 function safeName(fileName: string): string {
   const base = basename(fileName).replace(/\s+/g, ' ').trim();
   const normalized = base.replace(/[^a-zA-Z0-9._ -]/g, '_');
@@ -229,18 +239,21 @@ async function storeOneFile(
   fileName: string,
   bytes: ArrayBuffer | Uint8Array,
   mime: string,
+  path?: string,
 ): Promise<FileEntry> {
   const folder = sessionDir(inboxPath, sessionId);
   const finalName = await resolveCollision(folder, fileName);
   await Bun.write(join(folder, finalName), bytes);
 
   const size = bytes instanceof ArrayBuffer ? bytes.byteLength : bytes.byteLength;
-  return {
+  const entry: FileEntry = {
     name: finalName,
     size,
     mime,
     uploaded: new Date().toISOString(),
   };
+  if (path) entry.path = path;
+  return entry;
 }
 
 async function unzipIntoSession(
@@ -323,6 +336,7 @@ export async function addFilesToSession(
   files: File[],
   maxFileSize: number,
   unzipEnabled: boolean,
+  paths?: string[],
 ): Promise<FileEntry[]> {
   return withSessionLock(sessionId, async () => {
     const session = await getSession(inboxPath, sessionId);
@@ -342,7 +356,9 @@ export async function addFilesToSession(
 
     const uploaded: FileEntry[] = [];
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]!;
+      const filePath = safePath(paths?.[i]);
       const bytes = new Uint8Array(await file.arrayBuffer());
       const isZip = shouldUnzip(file, bytes);
       if (unzipEnabled && isZip) {
@@ -357,6 +373,7 @@ export async function addFilesToSession(
         file.name,
         bytes,
         file.type || mimeFromName(file.name),
+        filePath,
       );
       uploaded.push(item);
     }

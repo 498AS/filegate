@@ -295,6 +295,8 @@ export type paths = {
                 content: {
                     "multipart/form-data": {
                         files?: string[];
+                        /** @description Relative directory path for each file (parallel to files array) */
+                        paths?: string[];
                     };
                 };
             };
@@ -463,6 +465,8 @@ export type components = {
         FileEntry: {
             mime: string;
             name: string;
+            /** @description Relative directory path, e.g. "reports/2025" */
+            path?: string;
             /** Format: int64 */
             size: number;
             /** Format: date-time */

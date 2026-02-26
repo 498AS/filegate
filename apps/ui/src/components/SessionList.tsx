@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderOpen,
+  Folder,
   Inbox,
   Loader2,
 } from "lucide-react";
@@ -17,7 +18,49 @@ import { useClient } from "@/hooks/use-client";
 import { useAuth } from "@/hooks/use-auth";
 import { formatBytes, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import type { Session } from "@filegate/sdk";
+import type { Session, FileEntry } from "@filegate/sdk";
+
+type TreeNode =
+  | { kind: "folder"; name: string; children: TreeNode[] }
+  | { kind: "file"; entry: FileEntry };
+
+function buildFileTree(files: FileEntry[]): TreeNode[] {
+  const hasAnyPath = files.some((f) => f.path);
+  if (!hasAnyPath) {
+    return files.map((entry) => ({ kind: "file", entry }));
+  }
+
+  const root: Map<string, TreeNode> = new Map();
+  const folderNodes = new Map<string, TreeNode & { kind: "folder" }>();
+
+  function ensureFolder(path: string): TreeNode & { kind: "folder" } {
+    if (folderNodes.has(path)) return folderNodes.get(path)!;
+    const parts = path.split("/");
+    const name = parts[parts.length - 1]!;
+    const node: TreeNode & { kind: "folder" } = { kind: "folder", name, children: [] };
+    folderNodes.set(path, node);
+
+    if (parts.length > 1) {
+      const parent = ensureFolder(parts.slice(0, -1).join("/"));
+      parent.children.push(node);
+    } else {
+      root.set(path, node);
+    }
+    return node;
+  }
+
+  for (const entry of files) {
+    const fileNode: TreeNode = { kind: "file", entry };
+    if (entry.path) {
+      const folder = ensureFolder(entry.path);
+      folder.children.push(fileNode);
+    } else {
+      root.set(`__file_${entry.name}`, fileNode);
+    }
+  }
+
+  return Array.from(root.values());
+}
 
 const POLL_INTERVAL = 30_000;
 
@@ -100,6 +143,50 @@ export function SessionList({ refreshKey }: Props) {
       }
       toast.error("Error en descarregar");
     }
+  }
+
+  function renderTree(nodes: TreeNode[], sessionId: string, depth: number): React.ReactNode[] {
+    return nodes.flatMap((node) => {
+      if (node.kind === "folder") {
+        return [
+          <div
+            key={`folder-${node.name}-${depth}`}
+            className="flex items-center gap-2.5 text-xs py-1.5"
+            style={{ paddingLeft: depth * 16 }}
+          >
+            <Folder className="size-3.5 text-amber-400 shrink-0" />
+            <span className="text-muted-foreground font-medium">
+              {node.name}
+            </span>
+          </div>,
+          ...renderTree(node.children, sessionId, depth + 1),
+        ];
+      }
+      return [
+        <div
+          key={node.entry.name}
+          className="flex items-center gap-2.5 text-xs py-1.5 group"
+          style={{ paddingLeft: depth * 16 }}
+        >
+          <FileIcon fileName={node.entry.name} />
+          <span className="truncate flex-1 text-foreground/70">
+            {node.entry.name}
+          </span>
+          <span className="text-muted-foreground shrink-0">
+            {formatBytes(node.entry.size)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => handleDownload(sessionId, node.entry.name)}
+            title="Descarregar"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+          >
+            <Download />
+          </Button>
+        </div>,
+      ];
+    });
   }
 
   if (loading) {
@@ -205,29 +292,7 @@ export function SessionList({ refreshKey }: Props) {
             {isOpen && session.files.length > 0 && (
               <div className="border-t border-border/40 bg-slate-50/50 px-4 py-3">
                 <div className="space-y-1.5">
-                  {session.files.map((file) => (
-                    <div
-                      key={file.name}
-                      className="flex items-center gap-2.5 text-xs py-1.5 group"
-                    >
-                      <FileIcon fileName={file.name} />
-                      <span className="truncate flex-1 text-foreground/70">
-                        {file.name}
-                      </span>
-                      <span className="text-muted-foreground shrink-0">
-                        {formatBytes(file.size)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => handleDownload(session.id, file.name)}
-                        title="Descarregar"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
-                      >
-                        <Download />
-                      </Button>
-                    </div>
-                  ))}
+                  {renderTree(buildFileTree(session.files), session.id, 0)}
                 </div>
               </div>
             )}

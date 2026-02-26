@@ -5,6 +5,7 @@ export type FileEntry = {
   size: number;
   mime: string;
   uploaded: string;
+  path?: string;
 };
 
 export type Session = {

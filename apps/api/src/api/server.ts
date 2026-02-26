@@ -131,12 +131,14 @@ async function handleRequest(
   if (filesSessionId && request.method === 'POST') {
     const formData = await request.formData();
     const files = formData.getAll('files').filter((value): value is File => value instanceof File);
+    const paths = formData.getAll('paths').map((v) => String(v));
     const uploaded = await addFilesToSession(
       config.inboxPath,
       filesSessionId,
       files,
       config.maxFileSize,
       config.unzipEnabled,
+      paths.length > 0 ? paths : undefined,
     );
 
     return Response.json({ uploaded }, { status: 201 });
