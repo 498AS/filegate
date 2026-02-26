@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
@@ -94,39 +93,32 @@ export function UploadZone({ onUploaded }: Props) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  /* ── Success card ── */
+  /* ── Success ── */
   if (state.phase === "done") {
     const clipboardText = `Codi: ${state.session.id}\n${UPLOAD_URL}`;
     return (
-      <div className="rounded-2xl bg-white border border-emerald-200/60 shadow-sm p-6 space-y-5">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-50">
-            <CheckCircle2 className="size-7 text-emerald-500" />
-          </div>
-          <p className="font-semibold text-lg text-foreground">
-            Arxius pujats correctament!
-          </p>
-          <p className="text-muted-foreground text-sm">
-            {state.session.files.length} arxiu(s)
+      <div className="max-w-md mx-auto text-center space-y-6 py-4">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-50">
+          <CheckCircle2 className="size-8 text-emerald-500" />
+        </div>
+
+        <div>
+          <p className="text-lg font-semibold">Arxius pujats correctament!</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {state.session.files.length} arxiu(s) pujat(s)
           </p>
         </div>
 
-        {/* Copyable block */}
-        <div className="rounded-xl bg-slate-50 border border-border/60 p-4 text-sm space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs">Codi:</span>
-            <span className="font-semibold text-foreground">
-              {state.session.id}
-            </span>
-          </div>
-          <div className="text-muted-foreground text-xs">{UPLOAD_URL}</div>
+        {/* Copyable card */}
+        <div className="bg-white rounded-xl border p-4 text-left space-y-1 shadow-sm">
+          <p className="text-xs text-muted-foreground">Codi de pujada</p>
+          <p className="font-mono text-sm font-semibold">{state.session.id}</p>
+          <p className="text-xs text-muted-foreground">{UPLOAD_URL}</p>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col gap-2.5">
           <Button
-            className="w-full h-11 rounded-xl"
+            className="w-full h-11 rounded-xl shadow-sm shadow-primary/20"
             onClick={() => handleCopy(clipboardText)}
           >
             {copied ? (
@@ -134,7 +126,7 @@ export function UploadZone({ onUploaded }: Props) {
             ) : (
               <Copy className="size-4 mr-2" />
             )}
-            {copied ? "Copiat!" : "Copiar"}
+            {copied ? "Copiat!" : "Copiar codi i URL"}
           </Button>
           <Button
             variant="ghost"
@@ -152,13 +144,13 @@ export function UploadZone({ onUploaded }: Props) {
   /* ── Upload form ── */
   return (
     <div className="space-y-5">
-      {/* Drop zone */}
+      {/* Drop zone — Drive-style large area */}
       <div
-        className={`rounded-2xl border-2 border-dashed p-10 text-center transition-all cursor-pointer ${
+        className={`rounded-2xl border-2 border-dashed transition-all cursor-pointer ${
           dragOver
-            ? "border-primary bg-primary/5 scale-[1.01]"
-            : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
-        }`}
+            ? "border-primary bg-primary/5 scale-[1.005]"
+            : "border-border hover:border-primary/30 hover:bg-white/60"
+        } ${files.length > 0 ? "p-6" : "py-16 px-6"}`}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -181,83 +173,105 @@ export function UploadZone({ onUploaded }: Props) {
             e.target.value = "";
           }}
         />
-        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10">
-          <CloudUpload className="size-6 text-primary" />
-        </div>
-        <p className="text-sm text-foreground/70">
-          Arrossega els arxius aquí
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          o{" "}
-          <span className="text-primary font-medium">
-            fes clic per seleccionar-los
-          </span>
-        </p>
-      </div>
 
-      {/* File list */}
-      {files.length > 0 && (
-        <div className="space-y-2">
-          {files.map((file, i) => (
-            <div
-              key={`${file.name}-${i}`}
-              className="flex items-center gap-3 text-sm bg-white rounded-xl border border-border/60 px-3.5 py-3 group shadow-sm"
-            >
-              <FileIcon fileName={file.name} className="size-5" />
-              <span className="truncate flex-1 text-foreground/80">
-                {file.name}
-              </span>
-              <span className="text-muted-foreground text-xs shrink-0">
-                {formatBytes(file.size)}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFile(i);
-                }}
-                className="text-muted-foreground/40 hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="size-4" />
-              </button>
+        {files.length === 0 ? (
+          /* Empty state */
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/8">
+              <CloudUpload className="size-7 text-primary" />
             </div>
-          ))}
-        </div>
-      )}
+            <p className="text-[15px] font-medium text-foreground/80">
+              Arrossega els arxius aquí
+            </p>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              o{" "}
+              <span className="text-primary font-medium">
+                fes clic per seleccionar-los
+              </span>
+            </p>
+          </div>
+        ) : (
+          /* File grid — Drive-style cards */
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {files.map((file, i) => (
+              <div
+                key={`${file.name}-${i}`}
+                className="relative bg-white rounded-xl border border-border/60 p-3 shadow-sm group"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Remove */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFile(i);
+                  }}
+                  className="absolute top-2 right-2 size-5 flex items-center justify-center rounded-full bg-foreground/5 text-muted-foreground hover:bg-destructive hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X className="size-3" />
+                </button>
 
-      {/* Label */}
-      <div className="space-y-1.5">
-        <Label htmlFor="label" className="text-xs text-muted-foreground">
-          Nom (opcional)
-        </Label>
-        <Input
-          id="label"
-          placeholder="ex: Factures gener"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          disabled={state.phase === "uploading"}
-          className="h-10 rounded-xl"
-        />
+                {/* Icon */}
+                <div className="flex items-center justify-center py-4">
+                  <FileIcon fileName={file.name} className="size-10" />
+                </div>
+
+                {/* Info */}
+                <div className="pt-2 border-t border-border/40">
+                  <p className="text-xs font-medium truncate text-foreground/80">
+                    {file.name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {formatBytes(file.size)}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {/* Add more */}
+            <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border/60 hover:border-primary/30 transition-colors min-h-[120px]">
+              <div className="text-center">
+                <Plus className="size-5 text-muted-foreground/50 mx-auto" />
+                <p className="text-[10px] text-muted-foreground mt-1">Afegir</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Upload progress / button */}
-      {state.phase === "uploading" ? (
-        <div className="space-y-3 py-2">
-          <Progress value={state.progress} className="h-2 rounded-full" />
-          <p className="text-xs text-muted-foreground text-center">
-            Pujant arxius…
-          </p>
+      {/* Label + upload row */}
+      {files.length > 0 && (
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1.5 block">
+              Nom (opcional)
+            </label>
+            <Input
+              placeholder="ex: Factures gener"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              disabled={state.phase === "uploading"}
+              className="h-11 rounded-xl bg-white"
+            />
+          </div>
+
+          {state.phase === "uploading" ? (
+            <div className="flex-1 space-y-2 pb-1">
+              <Progress value={state.progress} className="h-2 rounded-full" />
+              <p className="text-xs text-muted-foreground text-center">
+                Pujant…
+              </p>
+            </div>
+          ) : (
+            <Button
+              className="h-11 rounded-xl px-6 shadow-sm shadow-primary/20"
+              disabled={files.length === 0}
+              onClick={handleUpload}
+            >
+              <CloudUpload className="size-4 mr-2" />
+              Pujar {files.length} arxiu(s)
+            </Button>
+          )}
         </div>
-      ) : (
-        <Button
-          className="w-full h-11 rounded-xl"
-          disabled={files.length === 0}
-          onClick={handleUpload}
-        >
-          <CloudUpload className="size-4 mr-2" />
-          {files.length > 0
-            ? `Pujar ${files.length} arxiu(s)`
-            : "Pujar"}
-        </Button>
       )}
     </div>
   );

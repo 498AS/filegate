@@ -7,7 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderOpen,
-  Inbox,
+  Cloud,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,8 +104,8 @@ export function SessionList({ refreshKey }: Props) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-        <Loader2 className="size-5 animate-spin text-primary/50" />
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+        <Loader2 className="size-5 animate-spin text-primary/40" />
         <p className="text-sm">Carregant…</p>
       </div>
     );
@@ -113,73 +113,84 @@ export function SessionList({ refreshKey }: Props) {
 
   if (sessions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-        <div className="flex size-14 items-center justify-center rounded-2xl bg-muted">
-          <Inbox className="size-6" />
+      <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-4">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-muted/70">
+          <Cloud className="size-7" />
         </div>
-        <p className="text-sm">Encara no hi ha pujades</p>
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground/60">Encara no hi ha pujades</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Els arxius que pugis apareixeran aquí
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {sessions.length} pujada(es)
-        </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={fetchSessions}
-          className="text-muted-foreground"
-        >
-          <RefreshCw className="size-3.5" />
-        </Button>
+        <h2 className="text-lg font-semibold tracking-tight">
+          Les teves pujades
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {sessions.length} pujada(es)
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={fetchSessions}
+            className="text-muted-foreground"
+          >
+            <RefreshCw className="size-3.5" />
+          </Button>
+        </div>
       </div>
 
-      {sessions.map((session) => {
-        const isOpen = expanded.has(session.id);
-        const displayName = session.label || formatDate(session.created);
+      {/* Session rows — clean table-like */}
+      <div className="bg-white rounded-xl border shadow-sm overflow-hidden divide-y divide-border/50">
+        {sessions.map((session) => {
+          const isOpen = expanded.has(session.id);
+          const displayName = session.label || formatDate(session.created);
 
-        return (
-          <div
-            key={session.id}
-            className="rounded-xl bg-white border border-border/60 shadow-sm overflow-hidden"
-          >
-            {/* Header */}
-            <div className="px-4 py-3.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleExpand(session.id)}
-                      className="text-muted-foreground/50 hover:text-foreground transition-colors"
-                    >
-                      {isOpen ? (
-                        <ChevronDown className="size-4" />
-                      ) : (
-                        <ChevronRight className="size-4" />
-                      )}
-                    </button>
-                    <FolderOpen className="size-4 text-amber-400 shrink-0" />
-                    <span className="font-medium text-sm truncate text-foreground/80">
-                      {displayName}
-                    </span>
-                    <StatusBadge status={session.status} />
-                  </div>
-                  <div className="text-[11px] text-muted-foreground pl-6 flex items-center gap-1.5">
-                    <span>{session.files.length} arxiu(s)</span>
-                    <span className="text-border">·</span>
-                    <span>{formatDate(session.created)}</span>
-                  </div>
+          return (
+            <div key={session.id}>
+              {/* Row */}
+              <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors">
+                {/* Expand */}
+                <button
+                  onClick={() => toggleExpand(session.id)}
+                  className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+                >
+                  {isOpen ? (
+                    <ChevronDown className="size-4" />
+                  ) : (
+                    <ChevronRight className="size-4" />
+                  )}
+                </button>
+
+                {/* Folder icon */}
+                <FolderOpen className="size-5 text-amber-400 shrink-0" />
+
+                {/* Name + meta */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{displayName}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {session.files.length} arxiu(s) · {formatDate(session.created)}
+                  </p>
                 </div>
 
+                {/* Status */}
+                <StatusBadge status={session.status} />
+
+                {/* Actions */}
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    className="text-muted-foreground/50 hover:text-foreground"
+                    className="text-muted-foreground/40 hover:text-foreground"
                     onClick={() => {
                       navigator.clipboard.writeText(session.id);
                       toast.success("Copiat!");
@@ -191,7 +202,7 @@ export function SessionList({ refreshKey }: Props) {
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    className="text-muted-foreground/50 hover:text-destructive"
+                    className="text-muted-foreground/40 hover:text-destructive"
                     onClick={() => handleDelete(session.id)}
                     title="Eliminar"
                   >
@@ -199,41 +210,41 @@ export function SessionList({ refreshKey }: Props) {
                   </Button>
                 </div>
               </div>
-            </div>
 
-            {/* File list */}
-            {isOpen && session.files.length > 0 && (
-              <div className="border-t border-border/40 bg-slate-50/50 px-4 py-3">
-                <div className="space-y-1.5">
-                  {session.files.map((file) => (
-                    <div
-                      key={file.name}
-                      className="flex items-center gap-2.5 text-xs py-1.5 group"
-                    >
-                      <FileIcon fileName={file.name} />
-                      <span className="truncate flex-1 text-foreground/70">
-                        {file.name}
-                      </span>
-                      <span className="text-muted-foreground shrink-0">
-                        {formatBytes(file.size)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => handleDownload(session.id, file.name)}
-                        title="Descarregar"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+              {/* Expanded files */}
+              {isOpen && session.files.length > 0 && (
+                <div className="bg-muted/20 px-4 py-3 pl-14">
+                  <div className="space-y-0.5">
+                    {session.files.map((file) => (
+                      <div
+                        key={file.name}
+                        className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/60 transition-colors group"
                       >
-                        <Download />
-                      </Button>
-                    </div>
-                  ))}
+                        <FileIcon fileName={file.name} />
+                        <span className="text-sm truncate flex-1">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatBytes(file.size)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => handleDownload(session.id, file.name)}
+                          title="Descarregar"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+                        >
+                          <Download />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

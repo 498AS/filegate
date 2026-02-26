@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyRound } from "lucide-react";
+import { CloudUpload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -32,25 +32,27 @@ export function AuthDialog() {
   return (
     <Dialog open={!isAuthed}>
       <DialogContent
-        className="sm:max-w-sm rounded-2xl"
+        className="sm:max-w-sm rounded-2xl shadow-xl border-0"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10">
-            <KeyRound className="size-6 text-primary" />
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/25">
+            <CloudUpload className="size-7" />
           </div>
-          <DialogTitle className="text-center text-lg">
-            Clau d'accés
+          <DialogTitle className="text-center text-xl font-semibold">
+            Filegate
           </DialogTitle>
           <DialogDescription className="text-center">
             Introdueix la clau que t'hem proporcionat
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           <div className="space-y-2">
-            <Label htmlFor="token">Clau</Label>
+            <Label htmlFor="token" className="text-xs text-muted-foreground">
+              Clau d'accés
+            </Label>
             <Input
               id="token"
               type="password"
@@ -60,7 +62,7 @@ export function AuthDialog() {
                 setToken(e.target.value);
                 setError("");
               }}
-              className="h-11 rounded-xl"
+              className="h-11 rounded-xl bg-muted/50 border-0 focus-visible:ring-2"
               autoFocus
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -77,7 +79,7 @@ export function AuthDialog() {
             </Label>
           </div>
 
-          <Button type="submit" className="w-full h-11 rounded-xl text-sm font-medium">
+          <Button type="submit" className="w-full h-11 rounded-xl font-medium shadow-sm shadow-primary/20">
             Entrar
           </Button>
         </form>

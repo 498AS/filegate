@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, CloudUpload, FolderOpen } from "lucide-react";
+import { LogOut, CloudUpload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthDialog } from "./AuthDialog";
@@ -16,64 +16,60 @@ export function App() {
       <AuthDialog />
 
       {isAuthed && (
-        <>
-          {/* Topbar — light, minimal */}
-          <header className="bg-white/70 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10">
-                  <CloudUpload className="size-[18px] text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-base font-semibold tracking-tight leading-none">
-                    Filegate
-                  </h1>
-                  <span className="text-[11px] text-muted-foreground leading-none">
-                    Pujada d'arxius
-                  </span>
-                </div>
+        <div className="flex min-h-screen">
+          {/* Sidebar */}
+          <aside className="w-60 shrink-0 bg-white border-r border-border/50 flex flex-col">
+            {/* Logo */}
+            <div className="px-5 py-5 flex items-center gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-white">
+                <CloudUpload className="size-4" />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="size-3.5 mr-1.5" />
-                Sortir
-              </Button>
+              <span className="font-semibold text-[15px] tracking-tight">
+                Filegate
+              </span>
             </div>
-          </header>
 
-          {/* Main content */}
-          <main className="mx-auto max-w-5xl px-5 py-8">
-            <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-              {/* Left: Upload */}
-              <div>
-                <div className="flex items-center gap-2 mb-5">
-                  <CloudUpload className="size-4 text-primary" />
-                  <h2 className="text-sm font-medium text-foreground/70">
-                    Puja els teus arxius
-                  </h2>
-                </div>
-                <UploadZone
-                  onUploaded={() => setRefreshKey((k) => k + 1)}
-                />
-              </div>
+            {/* Nav */}
+            <nav className="px-3 flex-1">
+              <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-primary/8 text-primary text-sm font-medium">
+                <CloudUpload className="size-4" />
+                Puja arxius
+              </button>
+            </nav>
 
-              {/* Right: Sessions */}
-              <div>
-                <div className="flex items-center gap-2 mb-5">
-                  <FolderOpen className="size-4 text-primary" />
-                  <h2 className="text-sm font-medium text-foreground/70">
-                    Les teves pujades
-                  </h2>
-                </div>
-                <SessionList refreshKey={refreshKey} />
-              </div>
+            {/* Bottom */}
+            <div className="px-3 pb-4">
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted text-sm transition-colors"
+              >
+                <LogOut className="size-4" />
+                Sortir
+              </button>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <main className="flex-1 overflow-y-auto">
+            {/* Top area — upload */}
+            <div className="px-8 pt-8 pb-6">
+              <h1 className="text-2xl font-semibold tracking-tight mb-6">
+                Puja els teus arxius
+              </h1>
+              <UploadZone
+                onUploaded={() => setRefreshKey((k) => k + 1)}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-border/50" />
+
+            {/* Sessions */}
+            <div className="px-8 py-6">
+              <SessionList refreshKey={refreshKey} />
             </div>
           </main>
-        </>
+        </div>
       )}
 
       <Toaster richColors position="bottom-right" />
