@@ -31,6 +31,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatBytes } from "@/lib/format";
 import { toast } from "sonner";
 import type { Session } from "@filegate/sdk";
+import {
+  type FileWithPath,
+  fileDedupKey,
+  fileDisplayDir,
+  handleFileSelect,
+  handleFolderDrop,
+} from "@/lib/folder";
 
 type Step = 1 | 2 | 3;
 
@@ -66,10 +73,11 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
   const client = useClient();
   const { logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState(0);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileWithPath[]>([]);
   const [label, setLabel] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -77,11 +85,10 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const addFiles = useCallback((incoming: FileList | File[]) => {
-    const arr = Array.from(incoming);
+  const addFiles = useCallback((incoming: FileWithPath[]) => {
     setFiles((prev) => {
-      const existing = new Set(prev.map((f) => `${f.name}:${f.size}`));
-      const deduped = arr.filter((f) => !existing.has(`${f.name}:${f.size}`));
+      const existing = new Set(prev.map(fileDedupKey));
+      const deduped = incoming.filter((f) => !existing.has(fileDedupKey(f)));
       return [...prev, ...deduped];
     });
   }, []);
@@ -265,11 +272,13 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                     setDragOver(true);
                   }}
                   onDragLeave={() => setDragOver(false)}
-                  onDrop={(e: React.DragEvent) => {
+                  onDrop={async (e: React.DragEvent) => {
                     e.preventDefault();
                     setDragOver(false);
-                    if (e.dataTransfer.files.length)
-                      addFiles(e.dataTransfer.files);
+                    const handled = await handleFolderDrop(e, addFiles);
+                    if (!handled && e.dataTransfer.files.length) {
+                      addFiles(Array.from(e.dataTransfer.files));
+                    }
                   }}
                 >
                   <input
@@ -277,10 +286,14 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                     type="file"
                     multiple
                     className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files?.length) addFiles(e.target.files);
-                      e.target.value = "";
-                    }}
+                    onChange={(e) => handleFileSelect(e, addFiles)}
+                  />
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    className="hidden"
+                    {...({ webkitdirectory: "", directory: "" } as any)}
+                    onChange={(e) => handleFileSelect(e, addFiles)}
                   />
 
                   <CardContent
@@ -292,21 +305,34 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                           <CloudUpload className="size-5 text-primary" />
                         </div>
                         <p className="text-sm text-foreground/70">
-                          Arrossega els arxius aquí
+                          Arrossega arxius o carpetes aquí
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           o{" "}
                           <span className="text-primary font-medium">
-                            fes clic per seleccionar
+                            selecciona arxius
                           </span>
+                          {" "}o{" "}
+                          <button
+                            type="button"
+                            className="text-primary font-medium hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              folderInputRef.current?.click();
+                            }}
+                          >
+                            selecciona una carpeta
+                          </button>
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <AnimatePresence>
-                          {files.map((file, i) => (
+                          {files.map((file, i) => {
+                            const dir = fileDisplayDir(file);
+                            return (
                             <motion.div
-                              key={`${file.name}-${file.size}`}
+                              key={fileDedupKey(file)}
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: "auto" }}
                               exit={{ opacity: 0, height: 0 }}
@@ -318,6 +344,7 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                                 className="size-5"
                               />
                               <span className="text-sm truncate flex-1">
+                                {dir && <span className="text-muted-foreground text-xs">{dir}/</span>}
                                 {file.name}
                               </span>
                               <Badge variant="secondary" className="shrink-0">
@@ -335,7 +362,8 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                                 <X className="size-3" />
                               </Button>
                             </motion.div>
-                          ))}
+                            );
+                          })}
                         </AnimatePresence>
                         <Button
                           variant="ghost"
