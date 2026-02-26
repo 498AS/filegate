@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
 import { useAuth } from "@/hooks/use-auth";
@@ -165,13 +166,13 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
       onOpenChange={(v) => (v ? onOpenChange(v) : handleClose())}
     >
       <DialogContent
-        className="sm:max-w-lg p-0 gap-0 overflow-hidden"
+        className="sm:max-w-lg p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col"
         onInteractOutside={(e) => {
           if (uploading) e.preventDefault();
         }}
       >
         {/* Step indicator */}
-        <div className="flex items-center gap-0 px-6 pt-5 pb-2">
+        <div className="flex items-center gap-0 px-6 pt-5 pb-2 shrink-0">
           {STEPS.map((s, i) => {
             const n = (i + 1) as Step;
             const active = step === n;
@@ -187,9 +188,7 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                           ? "bg-emerald-100 text-emerald-600"
                           : "bg-muted text-muted-foreground"
                     }`}
-                    animate={{
-                      scale: active ? 1.1 : 1,
-                    }}
+                    animate={{ scale: active ? 1.1 : 1 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   >
                     {done ? (
@@ -231,10 +230,10 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
           })}
         </div>
 
-        <Separator />
+        <Separator className="shrink-0" />
 
-        {/* Animated steps */}
-        <div className="relative overflow-hidden">
+        {/* Animated steps — scrollable */}
+        <div className="relative overflow-hidden flex-1 min-h-0">
           <AnimatePresence mode="wait" custom={direction}>
             {/* Step 1: Select files */}
             {step === 1 && (
@@ -246,144 +245,159 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                 animate="center"
                 exit="exit"
                 transition={stepTransition}
-                className="px-6 pb-6 pt-4 space-y-4"
+                className="flex flex-col h-full"
               >
-                <DialogHeader>
-                  <DialogTitle className="text-base">
-                    Selecciona els arxius
-                  </DialogTitle>
-                  <DialogDescription>
-                    Arrossega'ls aquí o fes clic per seleccionar-los
-                  </DialogDescription>
-                </DialogHeader>
+                <div className="px-6 pt-4 shrink-0">
+                  <DialogHeader>
+                    <DialogTitle className="text-base">
+                      Selecciona els arxius
+                    </DialogTitle>
+                    <DialogDescription>
+                      Arrossega'ls aquí o fes clic per seleccionar-los
+                    </DialogDescription>
+                  </DialogHeader>
+                </div>
 
-                {/* Drop zone */}
-                <Card
-                  className={`border-2 border-dashed transition-all cursor-pointer ${
-                    dragOver
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/30"
-                  }`}
-                  onClick={() =>
-                    files.length === 0 && fileInputRef.current?.click()
-                  }
-                  onDragOver={(e: React.DragEvent) => {
-                    e.preventDefault();
-                    setDragOver(true);
-                  }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={async (e: React.DragEvent) => {
-                    e.preventDefault();
-                    setDragOver(false);
-                    const handled = await handleFolderDrop(e, addFiles);
-                    if (!handled && e.dataTransfer.files.length) {
-                      addFiles(Array.from(e.dataTransfer.files));
+                <ScrollArea className="flex-1 px-6 pt-4">
+                  {/* Drop zone */}
+                  <Card
+                    className={`border-2 border-dashed transition-all cursor-pointer ${
+                      dragOver
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                    onClick={() =>
+                      files.length === 0 && fileInputRef.current?.click()
                     }
-                  }}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleFileSelect(e, addFiles)}
-                  />
-                  <input
-                    ref={folderInputRef}
-                    type="file"
-                    className="hidden"
-                    {...({ webkitdirectory: "", directory: "" } as any)}
-                    onChange={(e) => handleFileSelect(e, addFiles)}
-                  />
-
-                  <CardContent
-                    className={files.length > 0 ? "p-4" : "py-10 px-4"}
+                    onDragOver={(e: React.DragEvent) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={async (e: React.DragEvent) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      const handled = await handleFolderDrop(e, addFiles);
+                      if (!handled && e.dataTransfer.files.length) {
+                        addFiles(Array.from(e.dataTransfer.files));
+                      }
+                    }}
                   >
-                    {files.length === 0 ? (
-                      <div className="text-center">
-                        <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/8">
-                          <CloudUpload className="size-5 text-primary" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleFileSelect(e, addFiles)}
+                    />
+                    <input
+                      ref={folderInputRef}
+                      type="file"
+                      className="hidden"
+                      {...({ webkitdirectory: "", directory: "" } as any)}
+                      onChange={(e) => handleFileSelect(e, addFiles)}
+                    />
+
+                    <CardContent
+                      className={files.length > 0 ? "p-4" : "py-10 px-4"}
+                    >
+                      {files.length === 0 ? (
+                        <div className="text-center">
+                          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/8">
+                            <CloudUpload className="size-5 text-primary" />
+                          </div>
+                          <p className="text-sm text-foreground/70">
+                            Arrossega arxius o carpetes aquí
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            o{" "}
+                            <span className="text-primary font-medium">
+                              selecciona arxius
+                            </span>
+                            {" "}o{" "}
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                folderInputRef.current?.click();
+                              }}
+                            >
+                              selecciona una carpeta
+                            </Button>
+                          </p>
                         </div>
-                        <p className="text-sm text-foreground/70">
-                          Arrossega arxius o carpetes aquí
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          o{" "}
-                          <span className="text-primary font-medium">
-                            selecciona arxius
-                          </span>
-                          {" "}o{" "}
-                          <button
-                            type="button"
-                            className="text-primary font-medium hover:underline"
+                      ) : (
+                        <div className="space-y-2">
+                          <AnimatePresence>
+                            {files.map((file, i) => {
+                              const dir = fileDisplayDir(file);
+                              return (
+                                <motion.div
+                                  key={fileDedupKey(file)}
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="flex items-center gap-3 bg-muted/30 rounded-lg px-3 py-2.5 group"
+                                >
+                                  <FileIcon
+                                    fileName={file.name}
+                                    className="size-5"
+                                  />
+                                  <span className="text-sm truncate flex-1">
+                                    {dir && (
+                                      <span className="text-muted-foreground text-xs">
+                                        {dir}/
+                                      </span>
+                                    )}
+                                    {file.name}
+                                  </span>
+                                  <Badge
+                                    variant="secondary"
+                                    className="shrink-0"
+                                  >
+                                    {formatBytes(file.size)}
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeFile(i);
+                                    }}
+                                  >
+                                    <X className="size-3" />
+                                  </Button>
+                                </motion.div>
+                              );
+                            })}
+                          </AnimatePresence>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-primary"
                             onClick={(e) => {
                               e.stopPropagation();
-                              folderInputRef.current?.click();
+                              fileInputRef.current?.click();
                             }}
                           >
-                            selecciona una carpeta
-                          </button>
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <AnimatePresence>
-                          {files.map((file, i) => {
-                            const dir = fileDisplayDir(file);
-                            return (
-                            <motion.div
-                              key={fileDedupKey(file)}
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex items-center gap-3 bg-muted/30 rounded-lg px-3 py-2.5 group"
-                            >
-                              <FileIcon
-                                fileName={file.name}
-                                className="size-5"
-                              />
-                              <span className="text-sm truncate flex-1">
-                                {dir && <span className="text-muted-foreground text-xs">{dir}/</span>}
-                                {file.name}
-                              </span>
-                              <Badge variant="secondary" className="shrink-0">
-                                {formatBytes(file.size)}
-                              </Badge>
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeFile(i);
-                                }}
-                              >
-                                <X className="size-3" />
-                              </Button>
-                            </motion.div>
-                            );
-                          })}
-                        </AnimatePresence>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full text-primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            fileInputRef.current?.click();
-                          }}
-                        >
-                          <Plus className="size-3.5 mr-1.5" />
-                          Afegir més arxius
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                            <Plus className="size-3.5 mr-1.5" />
+                            Afegir més arxius
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </ScrollArea>
 
-                <div className="flex justify-end">
-                  <Button onClick={() => goTo(2)} disabled={files.length === 0}>
+                <div className="flex justify-end px-6 pb-6 pt-4 shrink-0">
+                  <Button
+                    onClick={() => goTo(2)}
+                    disabled={files.length === 0}
+                  >
                     Següent
                     <ArrowRight className="size-4 ml-1.5" />
                   </Button>
@@ -401,59 +415,66 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                 animate="center"
                 exit="exit"
                 transition={stepTransition}
-                className="px-6 pb-6 pt-4 space-y-5"
+                className="flex flex-col h-full"
               >
-                <DialogHeader>
-                  <DialogTitle className="text-base">
-                    Detalls de la pujada
-                  </DialogTitle>
-                  <DialogDescription>
-                    {files.length} arxiu(s) seleccionat(s)
-                  </DialogDescription>
-                </DialogHeader>
+                <ScrollArea className="flex-1 px-6 pt-4">
+                  <div className="space-y-5">
+                    <DialogHeader>
+                      <DialogTitle className="text-base">
+                        Detalls de la pujada
+                      </DialogTitle>
+                      <DialogDescription>
+                        {files.length} arxiu(s) seleccionat(s)
+                      </DialogDescription>
+                    </DialogHeader>
 
-                <div className="space-y-2">
-                  <Label htmlFor="upload-label">Nom (opcional)</Label>
-                  <Input
-                    id="upload-label"
-                    placeholder="ex: Factures gener"
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                    disabled={uploading}
-                    autoFocus
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Posa un nom per identificar aquesta pujada fàcilment
-                  </p>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="upload-label">Nom (opcional)</Label>
+                      <Input
+                        id="upload-label"
+                        placeholder="ex: Factures gener"
+                        value={label}
+                        onChange={(e) => setLabel(e.target.value)}
+                        disabled={uploading}
+                        autoFocus
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Posa un nom per identificar aquesta pujada fàcilment
+                      </p>
+                    </div>
 
-                {/* File summary */}
-                <div className="flex flex-wrap gap-1.5">
-                  {files.map((file, i) => (
-                    <Badge key={`${file.name}-${i}`} variant="outline">
-                      <FileIcon fileName={file.name} className="size-3" />
-                      <span className="truncate max-w-[100px]">
-                        {file.name}
-                      </span>
-                    </Badge>
-                  ))}
-                </div>
+                    {/* File summary */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {files.map((file, i) => (
+                        <Badge
+                          key={`${file.name}-${i}`}
+                          variant="outline"
+                        >
+                          <FileIcon fileName={file.name} className="size-3" />
+                          <span className="truncate max-w-[100px]">
+                            {file.name}
+                          </span>
+                        </Badge>
+                      ))}
+                    </div>
 
-                {/* Upload progress */}
-                {uploading && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-2"
-                  >
-                    <Progress value={uploadProgress} />
-                    <p className="text-xs text-muted-foreground text-center">
-                      Pujant arxius…
-                    </p>
-                  </motion.div>
-                )}
+                    {/* Upload progress */}
+                    {uploading && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-2"
+                      >
+                        <Progress value={uploadProgress} />
+                        <p className="text-xs text-muted-foreground text-center">
+                          Pujant arxius…
+                        </p>
+                      </motion.div>
+                    )}
+                  </div>
+                </ScrollArea>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between px-6 pb-6 pt-4 shrink-0">
                   <Button
                     variant="ghost"
                     onClick={() => goTo(1)}
@@ -519,7 +540,6 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                   </motion.div>
                 </div>
 
-                {/* Copyable block */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -561,11 +581,7 @@ export function UploadDialog({ open, onOpenChange, onUploaded }: Props) {
                     )}
                     {copied ? "Copiat!" : "Copiar al porta-retalls"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={reset}
-                  >
+                  <Button variant="outline" className="w-full" onClick={reset}>
                     <Plus className="size-4 mr-2" />
                     Nova pujada
                   </Button>

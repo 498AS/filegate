@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { StatusBadge } from "./StatusBadge";
 import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
@@ -256,6 +257,7 @@ export function SessionList({ refreshKey }: Props) {
       </div>
 
       <Card className="overflow-hidden">
+        <ScrollArea className="max-h-[calc(100vh-12rem)]">
         <div className="divide-y divide-border/50">
           {sessions.map((session) => {
             const isOpen = expanded.has(session.id);
@@ -343,19 +345,22 @@ export function SessionList({ refreshKey }: Props) {
                 {isOpen && session.files.length > 0 && (
                   <CardContent className="p-0">
                     <Separator />
-                    <div className="bg-muted/20 px-4 py-3 pl-14 space-y-0.5">
-                      {renderTree(
-                        buildFileTree(session.files),
-                        session.id,
-                        0,
-                      )}
-                    </div>
+                    <ScrollArea className="max-h-64">
+                      <div className="bg-muted/20 px-4 py-3 pl-14 space-y-0.5">
+                        {renderTree(
+                          buildFileTree(session.files),
+                          session.id,
+                          0,
+                        )}
+                      </div>
+                    </ScrollArea>
                   </CardContent>
                 )}
               </div>
             );
           })}
         </div>
+        </ScrollArea>
       </Card>
     </div>
   );
