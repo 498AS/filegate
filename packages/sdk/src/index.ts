@@ -153,8 +153,23 @@ export class FilegateClient {
   readonly files = {
     upload: async (sessionId: string, files: File[] | FileList): Promise<FileEntry[]> => {
       const form = new FormData();
-      for (const file of Array.from(files)) {
+      let hasPaths = false;
+      const fileArr = Array.from(files);
+      const pathEntries: string[] = [];
+
+      for (const file of fileArr) {
         form.append('files', file);
+        const relativePath = (file as File & { relativePath?: string; webkitRelativePath?: string })
+          .relativePath ?? (file as File & { webkitRelativePath?: string }).webkitRelativePath ?? '';
+        const dir = relativePath ? relativePath.replace(/[/\\][^/\\]*$/, '') : '';
+        pathEntries.push(dir);
+        if (dir) hasPaths = true;
+      }
+
+      if (hasPaths) {
+        for (const p of pathEntries) {
+          form.append('paths', p);
+        }
       }
 
       const response = await this.fetchImpl(

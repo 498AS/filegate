@@ -16,6 +16,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatBytes } from "@/lib/format";
 import { toast } from "sonner";
 import type { Session } from "@filegate/sdk";
+import {
+  type FileWithPath,
+  fileDedupKey,
+  fileDisplayDir,
+  handleFileSelect,
+  handleFolderDrop,
+} from "@/lib/folder";
 
 type UploadState =
   | { phase: "idle" }
@@ -32,17 +39,17 @@ export function UploadZone({ onUploaded }: Props) {
   const client = useClient();
   const { logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<File[]>([]);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<FileWithPath[]>([]);
   const [label, setLabel] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [state, setState] = useState<UploadState>({ phase: "idle" });
   const [copied, setCopied] = useState(false);
 
-  const addFiles = useCallback((incoming: FileList | File[]) => {
-    const arr = Array.from(incoming);
+  const addFiles = useCallback((incoming: FileWithPath[]) => {
     setFiles((prev) => {
-      const existing = new Set(prev.map((f) => `${f.name}:${f.size}`));
-      const deduped = arr.filter((f) => !existing.has(`${f.name}:${f.size}`));
+      const existing = new Set(prev.map(fileDedupKey));
+      const deduped = incoming.filter((f) => !existing.has(fileDedupKey(f)));
       return [...prev, ...deduped];
     });
   }, []);
@@ -156,10 +163,13 @@ export function UploadZone({ onUploaded }: Props) {
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
+        onDrop={async (e) => {
           e.preventDefault();
           setDragOver(false);
-          if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+          const handled = await handleFolderDrop(e, addFiles);
+          if (!handled && e.dataTransfer.files.length) {
+            addFiles(Array.from(e.dataTransfer.files));
+          }
         }}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -168,10 +178,14 @@ export function UploadZone({ onUploaded }: Props) {
           type="file"
           multiple
           className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) addFiles(e.target.files);
-            e.target.value = "";
-          }}
+          onChange={(e) => handleFileSelect(e, addFiles)}
+        />
+        <input
+          ref={folderInputRef}
+          type="file"
+          className="hidden"
+          {...({ webkitdirectory: "", directory: "" } as any)}
+          onChange={(e) => handleFileSelect(e, addFiles)}
         />
 
         {files.length === 0 ? (
@@ -181,21 +195,34 @@ export function UploadZone({ onUploaded }: Props) {
               <CloudUpload className="size-7 text-primary" />
             </div>
             <p className="text-[15px] font-medium text-foreground/80">
-              Arrossega els arxius aquí
+              Arrossega arxius o carpetes aquí
             </p>
             <p className="text-sm text-muted-foreground mt-1.5">
               o{" "}
               <span className="text-primary font-medium">
-                fes clic per seleccionar-los
+                selecciona arxius
               </span>
+              {" "}o{" "}
+              <button
+                type="button"
+                className="text-primary font-medium hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  folderInputRef.current?.click();
+                }}
+              >
+                selecciona una carpeta
+              </button>
             </p>
           </div>
         ) : (
           /* File grid — Drive-style cards */
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {files.map((file, i) => (
+            {files.map((file, i) => {
+              const dir = fileDisplayDir(file);
+              return (
               <div
-                key={`${file.name}-${i}`}
+                key={fileDedupKey(file)}
                 className="relative bg-white rounded-xl border border-border/60 p-3 shadow-sm group"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -217,6 +244,9 @@ export function UploadZone({ onUploaded }: Props) {
 
                 {/* Info */}
                 <div className="pt-2 border-t border-border/40">
+                  {dir && (
+                    <p className="text-[10px] text-muted-foreground truncate">{dir}/</p>
+                  )}
                   <p className="text-xs font-medium truncate text-foreground/80">
                     {file.name}
                   </p>
@@ -225,7 +255,8 @@ export function UploadZone({ onUploaded }: Props) {
                   </p>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Add more */}
             <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border/60 hover:border-primary/30 transition-colors min-h-[120px]">
