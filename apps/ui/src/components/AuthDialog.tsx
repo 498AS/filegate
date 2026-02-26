@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { KeyRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ export function AuthDialog() {
     e.preventDefault();
     const trimmed = token.trim();
     if (!trimmed) {
-      setError("Token is required");
+      setError("La clau és obligatòria");
       return;
     }
     login(trimmed, remember);
@@ -36,19 +37,22 @@ export function AuthDialog() {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Authenticate</DialogTitle>
-          <DialogDescription>
-            Enter your API token to continue.
+          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10">
+            <KeyRound className="size-6 text-primary" />
+          </div>
+          <DialogTitle className="text-center">Clau d'accés</DialogTitle>
+          <DialogDescription className="text-center">
+            Introdueix la clau que t'hem proporcionat
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="token">API Token</Label>
+            <Label htmlFor="token">Clau</Label>
             <Input
               id="token"
               type="password"
-              placeholder="your-secret-token"
+              placeholder="••••••••••••"
               value={token}
               onChange={(e) => {
                 setToken(e.target.value);
@@ -66,12 +70,13 @@ export function AuthDialog() {
               onCheckedChange={(c) => setRemember(c === true)}
             />
             <Label htmlFor="remember" className="text-sm font-normal">
-              Remember on this browser
+              Recorda'm en aquest navegador
             </Label>
           </div>
 
           <Button type="submit" className="w-full">
-            Sign in
+            <KeyRound className="size-4 mr-2" />
+            Entrar
           </Button>
         </form>
       </DialogContent>

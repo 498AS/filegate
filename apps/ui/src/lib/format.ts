@@ -11,7 +11,7 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString("ca-ES", {
     month: "short",
     day: "numeric",
     hour: "2-digit",

@@ -6,11 +6,15 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
+  FolderOpen,
+  Inbox,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "./StatusBadge";
+import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
 import { useAuth } from "@/hooks/use-auth";
 import { formatBytes, formatDate } from "@/lib/format";
@@ -20,7 +24,6 @@ import type { Session } from "@filegate/sdk";
 const POLL_INTERVAL = 30_000;
 
 interface Props {
-  /** Incremented to trigger a refetch */
   refreshKey: number;
 }
 
@@ -41,20 +44,18 @@ export function SessionList({ refreshKey }: Props) {
         logout();
         return;
       }
-      toast.error("Failed to load sessions");
+      toast.error("Error en carregar les pujades");
     } finally {
       setLoading(false);
     }
   }, [client, logout]);
 
-  // Initial load + polling
   useEffect(() => {
     fetchSessions();
     const id = setInterval(fetchSessions, POLL_INTERVAL);
     return () => clearInterval(id);
   }, [fetchSessions]);
 
-  // Refetch on upload
   useEffect(() => {
     if (refreshKey > 0) fetchSessions();
   }, [refreshKey, fetchSessions]);
@@ -69,16 +70,17 @@ export function SessionList({ refreshKey }: Props) {
 
   async function handleDelete(id: string) {
     if (!client) return;
+    if (!window.confirm("Segur que vols eliminar aquesta pujada?")) return;
     try {
       await client.sessions.remove(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
-      toast.success(`Deleted ${id}`);
+      toast.success("Eliminat");
     } catch (err: any) {
       if (err?.status === 401) {
         logout();
         return;
       }
-      toast.error("Failed to delete session");
+      toast.error("Error en eliminar");
     }
   }
 
@@ -98,22 +100,26 @@ export function SessionList({ refreshKey }: Props) {
         logout();
         return;
       }
-      toast.error("Download failed");
+      toast.error("Error en descarregar");
     }
   }
 
   if (loading) {
     return (
-      <div className="text-sm text-muted-foreground text-center py-8">
-        Loading sessions…
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+        <Loader2 className="size-6 animate-spin" />
+        <p className="text-sm">Carregant pujades…</p>
       </div>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground text-center py-8">
-        No sessions yet. Upload some files!
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+        <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+          <Inbox className="size-6" />
+        </div>
+        <p className="text-sm">Encara no hi ha pujades</p>
       </div>
     );
   }
@@ -121,9 +127,9 @@ export function SessionList({ refreshKey }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          {sessions.length} session(s)
-        </h2>
+        <span className="text-xs text-muted-foreground">
+          {sessions.length} pujada(es)
+        </span>
         <Button variant="ghost" size="icon-sm" onClick={fetchSessions}>
           <RefreshCw className="size-3.5" />
         </Button>
@@ -131,16 +137,18 @@ export function SessionList({ refreshKey }: Props) {
 
       {sessions.map((session) => {
         const isOpen = expanded.has(session.id);
+        const displayName = session.label || formatDate(session.created);
 
         return (
-          <Card key={session.id}>
+          <Card key={session.id} className="overflow-hidden">
             <CardHeader className="p-4 pb-0">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 space-y-1">
+                <div className="min-w-0 space-y-1.5">
+                  {/* Expand + title row */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleExpand(session.id)}
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {isOpen ? (
                         <ChevronDown className="size-4" />
@@ -148,26 +156,30 @@ export function SessionList({ refreshKey }: Props) {
                         <ChevronRight className="size-4" />
                       )}
                     </button>
-                    <CardTitle className="text-sm font-mono">
-                      {session.id}
-                    </CardTitle>
+                    <FolderOpen className="size-4 text-yellow-400 shrink-0" />
+                    <span className="font-medium text-sm truncate">
+                      {displayName}
+                    </span>
                     <StatusBadge status={session.status} />
                   </div>
-                  {session.label && (
-                    <p className="text-xs text-muted-foreground pl-6">
-                      {session.label}
-                    </p>
-                  )}
+                  {/* Meta info */}
+                  <div className="text-xs text-muted-foreground pl-6 flex items-center gap-1.5">
+                    <span>{session.files.length} arxiu(s)</span>
+                    <span>·</span>
+                    <span>{formatDate(session.created)}</span>
+                  </div>
                 </div>
 
+                {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon-xs"
                     onClick={() => {
                       navigator.clipboard.writeText(session.id);
-                      toast.success("Copied!");
+                      toast.success("Copiat!");
                     }}
+                    title="Copiar codi"
                   >
                     <Copy />
                   </Button>
@@ -176,14 +188,11 @@ export function SessionList({ refreshKey }: Props) {
                     size="icon-xs"
                     className="text-destructive hover:text-destructive"
                     onClick={() => handleDelete(session.id)}
+                    title="Eliminar"
                   >
                     <Trash2 />
                   </Button>
                 </div>
-              </div>
-
-              <div className="text-xs text-muted-foreground pl-6">
-                {session.files.length} file(s) · {formatDate(session.created)}
               </div>
             </CardHeader>
 
@@ -194,8 +203,9 @@ export function SessionList({ refreshKey }: Props) {
                   {session.files.map((file) => (
                     <div
                       key={file.name}
-                      className="flex items-center gap-2 text-xs"
+                      className="flex items-center gap-2.5 text-xs bg-muted/40 rounded-md px-3 py-2 group"
                     >
+                      <FileIcon fileName={file.name} />
                       <span className="truncate flex-1">{file.name}</span>
                       <span className="text-muted-foreground shrink-0">
                         {formatBytes(file.size)}
@@ -204,6 +214,8 @@ export function SessionList({ refreshKey }: Props) {
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => handleDownload(session.id, file.name)}
+                        title="Descarregar"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Download />
                       </Button>
