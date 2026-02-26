@@ -11,8 +11,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "./StatusBadge";
 import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
@@ -106,17 +104,17 @@ export function SessionList({ refreshKey }: Props) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
-        <Loader2 className="size-6 animate-spin" />
-        <p className="text-sm">Carregant pujades…</p>
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+        <Loader2 className="size-5 animate-spin text-primary/50" />
+        <p className="text-sm">Carregant…</p>
       </div>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
-        <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-muted">
           <Inbox className="size-6" />
         </div>
         <p className="text-sm">Encara no hi ha pujades</p>
@@ -130,7 +128,12 @@ export function SessionList({ refreshKey }: Props) {
         <span className="text-xs text-muted-foreground">
           {sessions.length} pujada(es)
         </span>
-        <Button variant="ghost" size="icon-sm" onClick={fetchSessions}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={fetchSessions}
+          className="text-muted-foreground"
+        >
           <RefreshCw className="size-3.5" />
         </Button>
       </div>
@@ -140,15 +143,18 @@ export function SessionList({ refreshKey }: Props) {
         const displayName = session.label || formatDate(session.created);
 
         return (
-          <Card key={session.id} className="overflow-hidden">
-            <CardHeader className="p-4 pb-0">
+          <div
+            key={session.id}
+            className="rounded-xl bg-white border border-border/60 shadow-sm overflow-hidden"
+          >
+            {/* Header */}
+            <div className="px-4 py-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 space-y-1.5">
-                  {/* Expand + title row */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleExpand(session.id)}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-muted-foreground/50 hover:text-foreground transition-colors"
                     >
                       {isOpen ? (
                         <ChevronDown className="size-4" />
@@ -156,25 +162,24 @@ export function SessionList({ refreshKey }: Props) {
                         <ChevronRight className="size-4" />
                       )}
                     </button>
-                    <FolderOpen className="size-4 text-yellow-400 shrink-0" />
-                    <span className="font-medium text-sm truncate">
+                    <FolderOpen className="size-4 text-amber-400 shrink-0" />
+                    <span className="font-medium text-sm truncate text-foreground/80">
                       {displayName}
                     </span>
                     <StatusBadge status={session.status} />
                   </div>
-                  {/* Meta info */}
-                  <div className="text-xs text-muted-foreground pl-6 flex items-center gap-1.5">
+                  <div className="text-[11px] text-muted-foreground pl-6 flex items-center gap-1.5">
                     <span>{session.files.length} arxiu(s)</span>
-                    <span>·</span>
+                    <span className="text-border">·</span>
                     <span>{formatDate(session.created)}</span>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon-xs"
+                    className="text-muted-foreground/50 hover:text-foreground"
                     onClick={() => {
                       navigator.clipboard.writeText(session.id);
                       toast.success("Copiat!");
@@ -186,7 +191,7 @@ export function SessionList({ refreshKey }: Props) {
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    className="text-destructive hover:text-destructive"
+                    className="text-muted-foreground/50 hover:text-destructive"
                     onClick={() => handleDelete(session.id)}
                     title="Eliminar"
                   >
@@ -194,19 +199,21 @@ export function SessionList({ refreshKey }: Props) {
                   </Button>
                 </div>
               </div>
-            </CardHeader>
+            </div>
 
+            {/* File list */}
             {isOpen && session.files.length > 0 && (
-              <CardContent className="p-4 pt-2">
-                <Separator className="mb-3" />
+              <div className="border-t border-border/40 bg-slate-50/50 px-4 py-3">
                 <div className="space-y-1.5">
                   {session.files.map((file) => (
                     <div
                       key={file.name}
-                      className="flex items-center gap-2.5 text-xs bg-muted/40 rounded-md px-3 py-2 group"
+                      className="flex items-center gap-2.5 text-xs py-1.5 group"
                     >
                       <FileIcon fileName={file.name} />
-                      <span className="truncate flex-1">{file.name}</span>
+                      <span className="truncate flex-1 text-foreground/70">
+                        {file.name}
+                      </span>
                       <span className="text-muted-foreground shrink-0">
                         {formatBytes(file.size)}
                       </span>
@@ -215,16 +222,16 @@ export function SessionList({ refreshKey }: Props) {
                         size="icon-xs"
                         onClick={() => handleDownload(session.id, file.name)}
                         title="Descarregar"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
                       >
                         <Download />
                       </Button>
                     </div>
                   ))}
                 </div>
-              </CardContent>
+              </div>
             )}
-          </Card>
+          </div>
         );
       })}
     </div>

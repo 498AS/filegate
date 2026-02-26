@@ -32,21 +32,23 @@ export function AuthDialog() {
   return (
     <Dialog open={!isAuthed}>
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-sm rounded-2xl"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10">
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10">
             <KeyRound className="size-6 text-primary" />
           </div>
-          <DialogTitle className="text-center">Clau d'accés</DialogTitle>
+          <DialogTitle className="text-center text-lg">
+            Clau d'accés
+          </DialogTitle>
           <DialogDescription className="text-center">
             Introdueix la clau que t'hem proporcionat
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 pt-1">
           <div className="space-y-2">
             <Label htmlFor="token">Clau</Label>
             <Input
@@ -58,6 +60,7 @@ export function AuthDialog() {
                 setToken(e.target.value);
                 setError("");
               }}
+              className="h-11 rounded-xl"
               autoFocus
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -69,13 +72,12 @@ export function AuthDialog() {
               checked={remember}
               onCheckedChange={(c) => setRemember(c === true)}
             />
-            <Label htmlFor="remember" className="text-sm font-normal">
+            <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground">
               Recorda'm en aquest navegador
             </Label>
           </div>
 
-          <Button type="submit" className="w-full">
-            <KeyRound className="size-4 mr-2" />
+          <Button type="submit" className="w-full h-11 rounded-xl text-sm font-medium">
             Entrar
           </Button>
         </form>

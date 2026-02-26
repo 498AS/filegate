@@ -1,17 +1,16 @@
 import { useState, useRef, useCallback } from "react";
 import {
-  Upload,
+  CloudUpload,
   X,
   CheckCircle2,
   Copy,
   ClipboardCheck,
-  RotateCcw,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
 import { FileIcon } from "./FileIcon";
 import { useClient } from "@/hooks/use-client";
 import { useAuth } from "@/hooks/use-auth";
@@ -95,67 +94,70 @@ export function UploadZone({ onUploaded }: Props) {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  /* ── Success card ── */
   if (state.phase === "done") {
     const clipboardText = `Codi: ${state.session.id}\n${UPLOAD_URL}`;
     return (
-      <Card className="border-green-500/30 bg-green-500/5">
-        <CardContent className="pt-6 space-y-5">
-          {/* Success header */}
-          <div className="text-center space-y-2">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-green-500/15">
-              <CheckCircle2 className="size-7 text-green-400" />
-            </div>
-            <p className="font-semibold text-lg">Arxius pujats correctament!</p>
-            <p className="text-muted-foreground text-sm">
-              {state.session.files.length} arxiu(s)
-            </p>
+      <div className="rounded-2xl bg-white border border-emerald-200/60 shadow-sm p-6 space-y-5">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-50">
+            <CheckCircle2 className="size-7 text-emerald-500" />
           </div>
+          <p className="font-semibold text-lg text-foreground">
+            Arxius pujats correctament!
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {state.session.files.length} arxiu(s)
+          </p>
+        </div>
 
-          {/* Copyable block */}
-          <div className="rounded-lg bg-muted/70 border p-4 font-mono text-sm space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Codi:</span>
-              <span className="font-semibold">{state.session.id}</span>
-            </div>
-            <div className="text-muted-foreground text-xs">{UPLOAD_URL}</div>
+        {/* Copyable block */}
+        <div className="rounded-xl bg-slate-50 border border-border/60 p-4 text-sm space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs">Codi:</span>
+            <span className="font-semibold text-foreground">
+              {state.session.id}
+            </span>
           </div>
+          <div className="text-muted-foreground text-xs">{UPLOAD_URL}</div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-2">
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={() => handleCopy(clipboardText)}
-            >
-              {copied ? (
-                <ClipboardCheck className="size-4 mr-2" />
-              ) : (
-                <Copy className="size-4 mr-2" />
-              )}
-              {copied ? "Copiat!" : "Copiar"}
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={reset}
-            >
-              <RotateCcw className="size-4 mr-2" />
-              Pujar més arxius
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Actions */}
+        <div className="flex flex-col gap-2.5">
+          <Button
+            className="w-full h-11 rounded-xl"
+            onClick={() => handleCopy(clipboardText)}
+          >
+            {copied ? (
+              <ClipboardCheck className="size-4 mr-2" />
+            ) : (
+              <Copy className="size-4 mr-2" />
+            )}
+            {copied ? "Copiat!" : "Copiar"}
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={reset}
+          >
+            <Plus className="size-4 mr-2" />
+            Pujar més arxius
+          </Button>
+        </div>
+      </div>
     );
   }
 
+  /* ── Upload form ── */
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Drop zone */}
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+        className={`rounded-2xl border-2 border-dashed p-10 text-center transition-all cursor-pointer ${
           dragOver
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:border-muted-foreground/50"
+            ? "border-primary bg-primary/5 scale-[1.01]"
+            : "border-border hover:border-primary/40 hover:bg-primary/[0.02]"
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -179,25 +181,32 @@ export function UploadZone({ onUploaded }: Props) {
             e.target.value = "";
           }}
         />
-        <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10">
-          <Upload className="size-5 text-primary" />
+        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10">
+          <CloudUpload className="size-6 text-primary" />
         </div>
-        <p className="text-sm text-muted-foreground">
-          Arrossega els arxius aquí o{" "}
-          <span className="text-primary underline">fes clic per seleccionar-los</span>
+        <p className="text-sm text-foreground/70">
+          Arrossega els arxius aquí
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          o{" "}
+          <span className="text-primary font-medium">
+            fes clic per seleccionar-los
+          </span>
         </p>
       </div>
 
       {/* File list */}
       {files.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {files.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="flex items-center gap-2.5 text-sm bg-muted/50 rounded-lg px-3 py-2.5 group"
+              className="flex items-center gap-3 text-sm bg-white rounded-xl border border-border/60 px-3.5 py-3 group shadow-sm"
             >
-              <FileIcon fileName={file.name} />
-              <span className="truncate flex-1">{file.name}</span>
+              <FileIcon fileName={file.name} className="size-5" />
+              <span className="truncate flex-1 text-foreground/80">
+                {file.name}
+              </span>
               <span className="text-muted-foreground text-xs shrink-0">
                 {formatBytes(file.size)}
               </span>
@@ -206,7 +215,7 @@ export function UploadZone({ onUploaded }: Props) {
                   e.stopPropagation();
                   removeFile(i);
                 }}
-                className="text-muted-foreground hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-muted-foreground/40 hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="size-4" />
               </button>
@@ -217,31 +226,34 @@ export function UploadZone({ onUploaded }: Props) {
 
       {/* Label */}
       <div className="space-y-1.5">
-        <Label htmlFor="label">Nom (opcional)</Label>
+        <Label htmlFor="label" className="text-xs text-muted-foreground">
+          Nom (opcional)
+        </Label>
         <Input
           id="label"
           placeholder="ex: Factures gener"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           disabled={state.phase === "uploading"}
+          className="h-10 rounded-xl"
         />
       </div>
 
       {/* Upload progress / button */}
       {state.phase === "uploading" ? (
-        <div className="space-y-2">
-          <Progress value={state.progress} />
+        <div className="space-y-3 py-2">
+          <Progress value={state.progress} className="h-2 rounded-full" />
           <p className="text-xs text-muted-foreground text-center">
             Pujant arxius…
           </p>
         </div>
       ) : (
         <Button
-          className="w-full"
+          className="w-full h-11 rounded-xl"
           disabled={files.length === 0}
           onClick={handleUpload}
         >
-          <Upload className="size-4 mr-2" />
+          <CloudUpload className="size-4 mr-2" />
           {files.length > 0
             ? `Pujar ${files.length} arxiu(s)`
             : "Pujar"}

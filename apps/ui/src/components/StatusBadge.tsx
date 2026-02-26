@@ -1,43 +1,48 @@
 import { Circle, CheckCircle2, Archive } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import type { Session } from "@filegate/sdk";
 
 const STATUS_CONFIG: Record<
   Session["status"],
   {
     label: string;
-    variant: "default" | "secondary" | "outline";
     icon: typeof Circle;
-    iconClass: string;
+    bg: string;
+    text: string;
+    iconColor: string;
   }
 > = {
   pending: {
     label: "No llegit",
-    variant: "default",
     icon: Circle,
-    iconClass: "text-blue-300",
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+    iconColor: "text-blue-400",
   },
   picked: {
     label: "Llegit",
-    variant: "secondary",
     icon: CheckCircle2,
-    iconClass: "text-green-400",
+    bg: "bg-emerald-50",
+    text: "text-emerald-600",
+    iconColor: "text-emerald-400",
   },
   archived: {
     label: "Arxivat",
-    variant: "outline",
     icon: Archive,
-    iconClass: "text-muted-foreground",
+    bg: "bg-slate-100",
+    text: "text-slate-500",
+    iconColor: "text-slate-400",
   },
 };
 
 export function StatusBadge({ status }: { status: Session["status"] }) {
-  const config = STATUS_CONFIG[status];
-  const Icon = config.icon;
+  const c = STATUS_CONFIG[status];
+  const Icon = c.icon;
   return (
-    <Badge variant={config.variant} className="gap-1">
-      <Icon className={`size-3 ${config.iconClass}`} />
-      {config.label}
-    </Badge>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${c.bg} ${c.text}`}
+    >
+      <Icon className={`size-3 ${c.iconColor}`} />
+      {c.label}
+    </span>
   );
 }
