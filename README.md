@@ -24,6 +24,10 @@ Monorepo basado en Turborepo para el servicio de subida de ficheros.
 - `bun run sdk:generate`
 - `bun run check`
 
+## Guías
+
+- `docs/CLI_API_GUIDE.md`: guía práctica de CLI y API (`list`, `show/get`, `pick`, `label`, `archive`, `curl`).
+
 ## API app
 
 En `apps/api` puedes usar:
