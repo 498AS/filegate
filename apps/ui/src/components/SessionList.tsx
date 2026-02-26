@@ -11,6 +11,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -141,141 +144,144 @@ export function SessionList({ refreshKey }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold tracking-tight">
           Les teves pujades
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {sessions.length} pujada(es)
-          </span>
+          <Badge variant="secondary">{sessions.length} pujada(es)</Badge>
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={fetchSessions}
-            className="text-muted-foreground"
           >
             <RefreshCw className="size-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Session rows */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden divide-y divide-border/50">
-        {sessions.map((session) => {
-          const isOpen = expanded.has(session.id);
-          const displayName = session.label || formatDate(session.created);
+      <Card className="overflow-hidden">
+        <div className="divide-y divide-border/50">
+          {sessions.map((session) => {
+            const isOpen = expanded.has(session.id);
+            const displayName = session.label || formatDate(session.created);
 
-          return (
-            <div key={session.id}>
-              <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors">
-                <button
-                  onClick={() => toggleExpand(session.id)}
-                  className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
-                >
-                  {isOpen ? (
-                    <ChevronDown className="size-4" />
-                  ) : (
-                    <ChevronRight className="size-4" />
-                  )}
-                </button>
+            return (
+              <div key={session.id}>
+                <CardHeader className="p-0">
+                  <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => toggleExpand(session.id)}
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="size-4" />
+                      ) : (
+                        <ChevronRight className="size-4" />
+                      )}
+                    </Button>
 
-                <FolderOpen className="size-5 text-amber-400 shrink-0" />
+                    <FolderOpen className="size-5 text-amber-400 shrink-0" />
 
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{displayName}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {session.files.length} arxiu(s) ·{" "}
-                    {formatDate(session.created)}
-                  </p>
-                </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {displayName}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {session.files.length} arxiu(s) ·{" "}
+                        {formatDate(session.created)}
+                      </p>
+                    </div>
 
-                <StatusBadge status={session.status} />
+                    <StatusBadge status={session.status} />
 
-                <div className="flex items-center gap-0.5 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-muted-foreground/40 hover:text-foreground"
-                    onClick={() => {
-                      navigator.clipboard.writeText(session.id);
-                      toast.success("Copiat!");
-                    }}
-                    title="Copiar codi"
-                  >
-                    <Copy />
-                  </Button>
-
-                  {/* Delete with AlertDialog */}
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon-xs"
-                        className="text-muted-foreground/40 hover:text-destructive"
-                        title="Eliminar"
+                        onClick={() => {
+                          navigator.clipboard.writeText(session.id);
+                          toast.success("Copiat!");
+                        }}
+                        title="Copiar codi"
                       >
-                        <Trash2 />
+                        <Copy />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent size="sm" className="rounded-2xl">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Eliminar pujada?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          S'eliminaran tots els arxius d'aquesta pujada. Aquesta
-                          acció no es pot desfer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel·lar</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          onClick={() => handleDelete(session.id)}
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
 
-              {isOpen && session.files.length > 0 && (
-                <div className="bg-muted/20 px-4 py-3 pl-14">
-                  <div className="space-y-0.5">
-                    {session.files.map((file) => (
-                      <div
-                        key={file.name}
-                        className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/60 transition-colors group"
-                      >
-                        <FileIcon fileName={file.name} />
-                        <span className="text-sm truncate flex-1">
-                          {file.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {formatBytes(file.size)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() =>
-                            handleDownload(session.id, file.name)
-                          }
-                          title="Descarregar"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
-                        >
-                          <Download />
-                        </Button>
-                      </div>
-                    ))}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-muted-foreground hover:text-destructive"
+                            title="Eliminar"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent size="sm">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Eliminar pujada?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              S'eliminaran tots els arxius d'aquesta pujada.
+                              Aquesta acció no es pot desfer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel·lar</AlertDialogCancel>
+                            <AlertDialogAction
+                              variant="destructive"
+                              onClick={() => handleDelete(session.id)}
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                </CardHeader>
+
+                {isOpen && session.files.length > 0 && (
+                  <CardContent className="p-0">
+                    <Separator />
+                    <div className="bg-muted/20 px-4 py-3 pl-14 space-y-0.5">
+                      {session.files.map((file) => (
+                        <div
+                          key={file.name}
+                          className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/60 transition-colors group"
+                        >
+                          <FileIcon fileName={file.name} />
+                          <span className="text-sm truncate flex-1">
+                            {file.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {formatBytes(file.size)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() =>
+                              handleDownload(session.id, file.name)
+                            }
+                            title="Descarregar"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Download />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
     </div>
   );
 }
