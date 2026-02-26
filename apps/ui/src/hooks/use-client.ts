@@ -8,7 +8,7 @@ export function useClient(): FilegateClient | null {
   return useMemo(() => {
     if (!token) return null;
     return new FilegateClient({
-      url: window.location.origin,
+      url: `${window.location.origin}/api`,
       token,
     });
   }, [token]);
